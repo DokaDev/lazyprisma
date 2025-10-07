@@ -24,6 +24,7 @@ build:
 clean:
 	$(GOCLEAN)
 	rm -f $(BUILD_DIR)/$(BINARY_NAME)
+	rm -f ./*.tar.gz
 
 ## run: Build and run the application
 run: build
@@ -48,3 +49,19 @@ help:
 	@echo ""
 	@echo "Targets:"
 	@sed -n 's/^##//p' ${MAKEFILE_LIST} | column -t -s ':' | sed -e 's/^/ /'
+
+BINARY_NAME=lazyprisma
+VERSION ?= 0.1.0
+DIST_DIR=dist
+
+build-all:
+	mkdir -p $(DIST_DIR)/darwin-amd64
+	mkdir -p $(DIST_DIR)/darwin-arm64
+	GOOS=darwin GOARCH=amd64 $(GOBUILD) -o $(DIST_DIR)/darwin-amd64/$(BINARY_NAME) .
+	GOOS=darwin GOARCH=arm64 $(GOBUILD) -o $(DIST_DIR)/darwin-arm64/$(BINARY_NAME) .
+
+package: build-all
+	tar -czvf $(BINARY_NAME)-v$(VERSION)-darwin-amd64.tar.gz -C $(DIST_DIR)/darwin-amd64 $(BINARY_NAME)
+	tar -czvf $(BINARY_NAME)-v$(VERSION)-darwin-arm64.tar.gz -C $(DIST_DIR)/darwin-arm64 $(BINARY_NAME)
+
+	rm -rf $(DIST_DIR)
