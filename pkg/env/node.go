@@ -1,7 +1,7 @@
 package env
 
 import (
-	"lazyprisma/pkg/exec"
+	"github.com/DokaDev/lazyprisma/pkg/exec"
 	"strings"
 )
 

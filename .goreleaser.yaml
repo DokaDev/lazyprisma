@@ -25,7 +25,7 @@ builds:
         goarch: arm64
     ldflags:
       - -s -w
-      - -X lazyprisma/pkg/version.Version={{.Version}}
+      - -X github.com/DokaDev/lazyprisma/pkg/version.Version={{.Version}}
     main: .
     mod_timestamp: '{{ .CommitTimestamp }}'
     flags:
