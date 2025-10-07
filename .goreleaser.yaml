@@ -3,8 +3,8 @@ version: 2
 
 before:
   hooks:
-    # Clean up before building
-    - go mod tidy
+    # Verify dependencies
+    - go mod download
 
 builds:
   - id: lazyprisma
