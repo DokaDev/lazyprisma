@@ -1,5 +1,5 @@
 // module lazyprisma
-module github.com/DokaDev/lazyprisma
+module lazyprisma
 
 go 1.25.1
 
@@ -15,4 +15,4 @@ require (
 	golang.org/x/text v0.28.0 // indirect
 )
 
-replace github.com/DokaDev/lazyprisma => ./
+// replace github.com/DokaDev/lazyprisma => ./

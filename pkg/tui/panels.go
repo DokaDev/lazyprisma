@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/DokaDev/lazyprisma/pkg/version"
+	"lazyprisma/pkg/version"
 
 	"github.com/gdamore/tcell/v2"
 )
