@@ -1,0 +1,8 @@
+.claude/
+generated/prisma
+generated/
+prisma/
+
+lazyprisma
+.env
+
