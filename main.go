@@ -15,7 +15,7 @@ import (
 func main() {
 	// Handle --version flag
 	if len(os.Args) > 1 && (os.Args[1] == "--version" || os.Args[1] == "-v") {
-		fmt.Printf("%s v%s\n", version.Author, version.Version)
+		fmt.Printf("lazyprisma version %s\n", version.Version)
 		os.Exit(0)
 	}
 
