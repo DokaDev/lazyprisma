@@ -60,6 +60,17 @@ changelog:
       - '^chore:'
       - '^ci:'
 
+signs:
+  - cmd: codesign
+    args:
+      - -s
+      - "lazyprisma-cert"
+      - --timestamp
+      - "${artifact}"
+    artifacts: binary
+    signature: ""
+
+
 # Homebrew tap configuration
 brews:
   - # Repository to push the formula to
