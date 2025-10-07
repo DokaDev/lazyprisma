@@ -67,7 +67,7 @@ brews:
       owner: dokadev  # GitHub username
       name: homebrew-lazyprisma
       branch: main
-      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+      token: "{{ .Env.GITHUB_TOKEN }}"
 
     # Commit author details
     commit_author:

@@ -1,4 +1,5 @@
-module lazyprisma
+// module lazyprisma
+module github.com/DokaDev/lazyprisma
 
 go 1.25.1
 
