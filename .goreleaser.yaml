@@ -11,6 +11,7 @@ builds:
     binary: lazyprisma
     env:
       - CGO_ENABLED=0
+      - GO111MODULE=on
     goos:
       - linux
       - darwin
@@ -25,11 +26,13 @@ builds:
     ldflags:
       - -s -w
       - -X lazyprisma/pkg/version.Version={{.Version}}
-    main: .
+    main: ./main.go
+    mod_timestamp: '{{ .CommitTimestamp }}'
+    flags:
+      - -trimpath
 
 archives:
   - id: lazyprisma
-    format: tar.gz
     name_template: >-
       {{ .ProjectName }}_
       {{- .Version }}_
@@ -38,19 +41,17 @@ archives:
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
-    format_overrides:
-      - goos: windows
-        format: zip
     files:
       - LICENSE*
       - README*
       - CHANGELOG*
+    rlcp: true
 
 checksum:
   name_template: 'checksums.txt'
 
 snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+  version_template: "{{ incpatch .Version }}-next"
 
 changelog:
   sort: asc
@@ -62,7 +63,7 @@ changelog:
       - '^ci:'
 
 # Homebrew tap configuration
-brews:
+homebrew:
   - # Repository to push the formula to
     repository:
       owner: dokadev  # GitHub username
