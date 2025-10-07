@@ -2,7 +2,7 @@ package tui
 
 import (
 	"fmt"
-	"github.com/DokaDev/lazyprisma/pkg/version"
+	"lazyprisma/pkg/version"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"

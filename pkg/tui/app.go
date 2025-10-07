@@ -1,8 +1,8 @@
 package tui
 
 import (
-	"github.com/DokaDev/lazyprisma/pkg/env"
-	"github.com/DokaDev/lazyprisma/pkg/prisma"
+	"lazyprisma/pkg/env"
+	"lazyprisma/pkg/prisma"
 	"os"
 	"regexp"
 	"strings"
