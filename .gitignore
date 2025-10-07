@@ -6,3 +6,5 @@ prisma/
 lazyprisma
 .env
 
+# GoReleaser
+dist/

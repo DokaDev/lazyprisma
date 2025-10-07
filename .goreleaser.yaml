@@ -1,0 +1,135 @@
+# GoReleaser configuration for LazyPrisma
+version: 2
+
+before:
+  hooks:
+    # Clean up before building
+    - go mod tidy
+
+builds:
+  - id: lazyprisma
+    binary: lazyprisma
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    # Ignore specific combinations if needed
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X lazyprisma/pkg/version.Version={{.Version}}
+    main: .
+
+archives:
+  - id: lazyprisma
+    format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - LICENSE*
+      - README*
+      - CHANGELOG*
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^ci:'
+
+# Homebrew tap configuration
+brews:
+  - # Repository to push the formula to
+    repository:
+      owner: dokadev  # GitHub username
+      name: homebrew-lazyprisma
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+
+    # Commit author details
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+
+    # Commit message template
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+
+    # Folder inside the repository
+    directory: Formula
+
+    # Caveats for the user
+    caveats: |
+      LazyPrisma requires Prisma CLI to be installed in your project:
+        npm install -D prisma
+
+      Or install it globally:
+        npm install -g prisma
+
+    # Homepage
+    homepage: "https://github.com/dokadev/lazyprisma"
+
+    # Description
+    description: "Terminal UI tool for managing Prisma migrations and database"
+
+    # License
+    license: "MIT"
+
+    # Dependencies
+    dependencies:
+      - name: node
+        type: optional
+
+    # Install configuration
+    install: |
+      bin.install "lazyprisma"
+
+    # Test configuration
+    test: |
+      system "#{bin}/lazyprisma", "--version"
+
+release:
+  # Draft release (you can publish manually)
+  draft: false
+
+  # Prerelease
+  prerelease: auto
+
+  # Release name
+  name_template: "{{.ProjectName}} v{{.Version}}"
+
+  # Footer template
+  footer: |
+    ## Installation
+
+    ### Homebrew (macOS/Linux)
+    ```bash
+    brew tap linkareer_123/lazyprisma
+    brew install lazyprisma
+    ```
+
+    ### Manual Installation
+    Download the appropriate binary for your platform from the assets below.
