@@ -26,7 +26,7 @@ builds:
     ldflags:
       - -s -w
       - -X lazyprisma/pkg/version.Version={{.Version}}
-    main: ./main.go
+    main: .
     mod_timestamp: '{{ .CommitTimestamp }}'
     flags:
       - -trimpath
