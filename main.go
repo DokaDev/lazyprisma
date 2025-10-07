@@ -7,9 +7,9 @@ import (
 	"os"
 	"strings"
 
-	"lazyprisma/pkg/prisma"
-	"lazyprisma/pkg/tui"
-	"lazyprisma/pkg/version"
+	"github.com/DokaDev/lazyprisma/pkg/prisma"
+	"github.com/DokaDev/lazyprisma/pkg/tui"
+	"github.com/DokaDev/lazyprisma/pkg/version"
 )
 
 func main() {

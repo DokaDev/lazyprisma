@@ -1,12 +1,13 @@
 package tui
 
 import (
-	"lazyprisma/pkg/env"
-	"lazyprisma/pkg/prisma"
 	"os"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/DokaDev/lazyprisma/pkg/env"
+	"github.com/DokaDev/lazyprisma/pkg/prisma"
 
 	"github.com/gdamore/tcell/v2"
 )

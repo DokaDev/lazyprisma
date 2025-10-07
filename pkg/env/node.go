@@ -1,8 +1,9 @@
 package env
 
 import (
-	"lazyprisma/pkg/exec"
 	"strings"
+
+	"github.com/DokaDev/lazyprisma/pkg/exec"
 )
 
 type NodeChecker struct {
