@@ -45,7 +45,6 @@ archives:
       - LICENSE*
       - README*
       - CHANGELOG*
-    rlcp: true
 
 checksum:
   name_template: 'checksums.txt'
@@ -63,7 +62,7 @@ changelog:
       - '^ci:'
 
 # Homebrew tap configuration
-homebrew:
+brews:
   - # Repository to push the formula to
     repository:
       owner: dokadev  # GitHub username
