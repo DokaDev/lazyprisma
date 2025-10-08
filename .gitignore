@@ -1,7 +1,7 @@
 .claude/
 generated/prisma
 generated/
-prisma/
+./prisma
 
 lazyprisma
 .env
