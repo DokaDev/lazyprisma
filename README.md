@@ -2,6 +2,8 @@
 
 Terminal UI tool for managing Prisma migrations and database.
 
+<img width="1458" height="918" alt="image" src="https://github.com/user-attachments/assets/71c2db93-b784-4a0b-9740-7bb3710c4caf" />
+
 ## Installation
 
 ### Homebrew (macOS/Linux)
