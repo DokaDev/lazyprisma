@@ -13,7 +13,7 @@ func (a *App) drawHelp(x1, y1, x2, y2 int) {
 	case 0: // Info panel
 		helpText = " ←/→: Switch | ↑/↓: Scroll | r: Refresh | g: Generate | f: Format | t: Studio | d: Dev | D: Deploy | ?: Help | q: Quit"
 	case 1: // Migrations panel
-		helpText = " ←/→: Switch | ↑/↓: Select | r: Refresh | g: Generate | f: Format | t: Studio | d: Dev | D: Deploy | ?: Help | q: Quit"
+		helpText = " ←/→: Switch | ↑/↓: Select | x: Resolve | r: Refresh | g: Generate | f: Format | t: Studio | d: Dev | D: Deploy | ?: Help | q: Quit"
 	case 2: // DB Only panel
 		helpText = " ←/→: Switch | ↑/↓: Select | r: Refresh | g: Generate | f: Format | t: Studio | d: Dev | D: Deploy | ?: Help | q: Quit"
 	case 3: // Migration Detail panel

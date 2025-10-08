@@ -43,6 +43,10 @@ func (e *Executor) MigrateReset() (string, error) {
 	return e.runner.RunNPX("prisma", "migrate", "reset", "--force")
 }
 
+func (e *Executor) MigrateResolve(migrationName, resolveType string) (string, error) {
+	return e.runner.RunNPX("prisma", "migrate", "resolve", "--"+resolveType, migrationName)
+}
+
 func (e *Executor) Validate() (string, error) {
 	return e.runner.RunNPX("prisma", "validate")
 }

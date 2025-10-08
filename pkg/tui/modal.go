@@ -44,9 +44,25 @@ func (a *App) handleModalKey(ev *tcell.EventKey) {
 			}
 			a.draw()
 		}
+		// Button selection in migrate_resolve modal
+		if a.modalType == "migrate_resolve" {
+			a.modalSelectedButton--
+			if a.modalSelectedButton < 0 {
+				a.modalSelectedButton = 0
+			}
+			a.draw()
+		}
 	case tcell.KeyRight:
 		// Button selection in confirm_reset modal
 		if a.modalType == "confirm_reset" {
+			a.modalSelectedButton++
+			if a.modalSelectedButton > 1 {
+				a.modalSelectedButton = 1
+			}
+			a.draw()
+		}
+		// Button selection in migrate_resolve modal
+		if a.modalType == "migrate_resolve" {
 			a.modalSelectedButton++
 			if a.modalSelectedButton > 1 {
 				a.modalSelectedButton = 1
@@ -102,6 +118,19 @@ func (a *App) handleModalKey(ev *tcell.EventKey) {
 			a.showModal = false
 			a.modalType = ""
 			go a.executeMigrateDeploy()
+			return
+		}
+		// migrate_resolve: Execute migrate resolve with selected option
+		if a.modalType == "migrate_resolve" {
+			resolveType := "applied"
+			if a.modalSelectedButton == 1 {
+				resolveType = "rolled-back"
+			}
+			a.showModal = false
+			a.modalType = ""
+			a.modalSelectedButton = 0
+			go a.executeMigrateResolve(a.pendingMigrationName, resolveType)
+			a.pendingMigrationName = ""
 			return
 		}
 		// input: Input complete
@@ -410,6 +439,63 @@ func (a *App) drawModal() {
 		hintStyle := tcell.StyleDefault.Foreground(tcell.ColorGray).Background(tcell.ColorBlack)
 		hintX := x1 + (modalWidth-len(msg2))/2
 		for i, r := range msg2 {
+			a.screen.SetContent(hintX+i, hintY, r, nil, hintStyle)
+		}
+	} else if a.modalType == "migrate_resolve" {
+		// Display message
+		msg1 := "Select resolve status for migration:"
+		msgY := y1 + 2
+		msgX := x1 + (modalWidth-len(msg1))/2
+		for i, r := range msg1 {
+			a.screen.SetContent(msgX+i, msgY, r, nil, textStyle)
+		}
+
+		// Display migration name
+		migrationStyle := tcell.StyleDefault.Foreground(tcell.ColorYellow).Background(tcell.ColorBlack)
+		migrationY := y1 + 3
+		migrationX := x1 + 2
+		displayName := a.pendingMigrationName
+		if len(displayName) > modalWidth-4 {
+			displayName = displayName[:modalWidth-4]
+		}
+		for i, r := range displayName {
+			a.screen.SetContent(migrationX+i, migrationY, r, nil, migrationStyle)
+		}
+
+		// Draw buttons
+		buttonY := y2 - 2
+		buttonSpacing := 4
+		appliedBtn := " Applied "
+		rolledBackBtn := " Rolled-back "
+
+		totalWidth := len(appliedBtn) + buttonSpacing + len(rolledBackBtn)
+		startX := x1 + (modalWidth-totalWidth)/2
+
+		// Applied button
+		appliedStyle := tcell.StyleDefault.Foreground(tcell.ColorWhite).Background(tcell.ColorBlack)
+		if a.modalSelectedButton == 0 {
+			appliedStyle = tcell.StyleDefault.Foreground(tcell.ColorBlack).Background(tcell.ColorGreen).Bold(true)
+		}
+		for i, r := range appliedBtn {
+			a.screen.SetContent(startX+i, buttonY, r, nil, appliedStyle)
+		}
+
+		// Rolled-back button
+		rolledBackStyle := tcell.StyleDefault.Foreground(tcell.ColorWhite).Background(tcell.ColorBlack)
+		if a.modalSelectedButton == 1 {
+			rolledBackStyle = tcell.StyleDefault.Foreground(tcell.ColorBlack).Background(tcell.ColorYellow).Bold(true)
+		}
+		rolledBackX := startX + len(appliedBtn) + buttonSpacing
+		for i, r := range rolledBackBtn {
+			a.screen.SetContent(rolledBackX+i, buttonY, r, nil, rolledBackStyle)
+		}
+
+		// Help message
+		hintText := "←/→: Select | Enter: Confirm | ESC: Cancel"
+		hintY := y2 - 1
+		hintStyle := tcell.StyleDefault.Foreground(tcell.ColorGray).Background(tcell.ColorBlack)
+		hintX := x1 + (modalWidth-len(hintText))/2
+		for i, r := range hintText {
 			a.screen.SetContent(hintX+i, hintY, r, nil, hintStyle)
 		}
 	} else if a.modalType == "input" {

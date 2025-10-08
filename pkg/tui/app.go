@@ -261,6 +261,11 @@ func (a *App) handleKey(ev *tcell.EventKey) {
 			if !a.isLoading {
 				go a.showHelp()
 			}
+		case 'x':
+			// migrate resolve
+			if !a.isLoading && a.activePanelIdx == 1 {
+				go a.showMigrateResolveMenu()
+			}
 		}
 	case tcell.KeyLeft:
 		a.activePanelIdx--
@@ -1260,6 +1265,11 @@ func (a *App) executeMigrateDev(name string) {
 
 	// Reload status
 	a.status = prisma.GetStatus()
+
+	// Refresh migration status to update pending migrations
+	statusOutput, _ := a.executor.MigrateStatus()
+	a.parsePendingMigrations(statusOutput)
+
 	go a.checkSchemaDiff()
 
 	a.draw()
@@ -1293,6 +1303,11 @@ func (a *App) executeReset() {
 
 	// Reload status
 	a.status = prisma.GetStatus()
+
+	// Refresh migration status to update pending migrations
+	statusOutput, _ := a.executor.MigrateStatus()
+	a.parsePendingMigrations(statusOutput)
+
 	go a.checkSchemaDiff()
 
 	a.isLoading = false
@@ -1323,6 +1338,11 @@ func (a *App) executeMigrateDeploy() {
 
 	// Reload status
 	a.status = prisma.GetStatus()
+
+	// Refresh migration status to update pending migrations
+	statusOutput, _ := a.executor.MigrateStatus()
+	a.parsePendingMigrations(statusOutput)
+
 	go a.checkSchemaDiff()
 
 	a.isLoading = false
@@ -1383,5 +1403,48 @@ func (a *App) showHelp() {
 	a.modalType = "help"
 	a.modalInput = output
 	a.helpScroll = 0
+	a.draw()
+}
+
+func (a *App) showMigrateResolveMenu() {
+	// Check if a migration is selected
+	if a.selectedItemIdx < 0 || a.selectedItemIdx >= len(a.status.Migrations) {
+		return
+	}
+
+	migration := a.status.Migrations[a.selectedItemIdx]
+	migrationName := migration.Timestamp + "_" + migration.Name
+
+	// Show resolve menu modal
+	a.showModal = true
+	a.modalTitle = "Migrate Resolve"
+	a.modalType = "migrate_resolve"
+	a.pendingMigrationName = migrationName
+	a.modalSelectedButton = 0 // Default: Applied
+	a.draw()
+}
+
+func (a *App) executeMigrateResolve(migrationName, resolveType string) {
+	a.isLoading = true
+	a.loadingMessage = "migrate resolve"
+
+	output, err := a.executor.MigrateResolve(migrationName, resolveType)
+	if err != nil {
+		output = output + "\n\nError: " + err.Error()
+	}
+
+	a.addCommandLog("npx prisma migrate resolve --"+resolveType+" "+migrationName, output)
+
+	// Reload status
+	a.status = prisma.GetStatus()
+
+	// Refresh migration status to update pending migrations
+	statusOutput, _ := a.executor.MigrateStatus()
+	a.parsePendingMigrations(statusOutput)
+
+	go a.checkSchemaDiff()
+
+	a.isLoading = false
+	a.loadingMessage = ""
 	a.draw()
 }
