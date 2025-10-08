@@ -36,7 +36,7 @@ lazyprisma
 - `D` - Migrate Deploy
 - `f` - Format schema
 - `t` - Open Prisma Studio
-- `h` - Help
+- `?` - Help
 - `q` - Quit
 
 ## Build from Source

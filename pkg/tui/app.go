@@ -256,7 +256,7 @@ func (a *App) handleKey(ev *tcell.EventKey) {
 			if !a.isLoading {
 				go a.runStudio()
 			}
-		case 'h':
+		case '?':
 			// help
 			if !a.isLoading {
 				go a.showHelp()
@@ -591,6 +591,23 @@ func (a *App) getOutputTotalLines() int {
 
 func (a *App) handleMouse(ev *tcell.EventMouse) {
 	x, y := ev.Position()
+
+	// Handle mouse wheel in help modal
+	if a.showModal && a.modalType == "help" {
+		if ev.Buttons()&tcell.WheelUp != 0 {
+			a.helpScroll--
+			if a.helpScroll < 0 {
+				a.helpScroll = 0
+			}
+			a.draw()
+			return
+		}
+		if ev.Buttons()&tcell.WheelDown != 0 {
+			a.helpScroll++
+			a.draw()
+			return
+		}
+	}
 
 	// Handle mouse wheel
 	if ev.Buttons()&tcell.WheelUp != 0 {

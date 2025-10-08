@@ -11,17 +11,17 @@ func (a *App) drawHelp(x1, y1, x2, y2 int) {
 	var helpText string
 	switch a.activePanelIdx {
 	case 0: // Info panel
-		helpText = " ←/→: Switch | ↑/↓: Scroll | r: Refresh | g: Generate | f: Format | t: Studio | d: Dev | D: Deploy | h: Help | q: Quit"
+		helpText = " ←/→: Switch | ↑/↓: Scroll | r: Refresh | g: Generate | f: Format | t: Studio | d: Dev | D: Deploy | ?: Help | q: Quit"
 	case 1: // Migrations panel
-		helpText = " ←/→: Switch | ↑/↓: Select | r: Refresh | g: Generate | f: Format | t: Studio | d: Dev | D: Deploy | h: Help | q: Quit"
+		helpText = " ←/→: Switch | ↑/↓: Select | r: Refresh | g: Generate | f: Format | t: Studio | d: Dev | D: Deploy | ?: Help | q: Quit"
 	case 2: // DB Only panel
-		helpText = " ←/→: Switch | ↑/↓: Select | r: Refresh | g: Generate | f: Format | t: Studio | d: Dev | D: Deploy | h: Help | q: Quit"
+		helpText = " ←/→: Switch | ↑/↓: Select | r: Refresh | g: Generate | f: Format | t: Studio | d: Dev | D: Deploy | ?: Help | q: Quit"
 	case 3: // Migration Detail panel
-		helpText = " ←/→: Switch | ↑/↓: Scroll | r: Refresh | g: Generate | f: Format | t: Studio | d: Dev | D: Deploy | h: Help | q: Quit"
+		helpText = " ←/→: Switch | ↑/↓: Scroll | r: Refresh | g: Generate | f: Format | t: Studio | d: Dev | D: Deploy | ?: Help | q: Quit"
 	case 4: // Output panel
-		helpText = " ←/→: Switch | ↑/↓: Scroll | r: Refresh | g: Generate | f: Format | t: Studio | d: Dev | D: Deploy | h: Help | q: Quit"
+		helpText = " ←/→: Switch | ↑/↓: Scroll | r: Refresh | g: Generate | f: Format | t: Studio | d: Dev | D: Deploy | ?: Help | q: Quit"
 	default:
-		helpText = " ←/→: Switch | r: Refresh | g: Generate | f: Format | t: Studio | d: Dev | D: Deploy | h: Help | q: Quit"
+		helpText = " ←/→: Switch | r: Refresh | g: Generate | f: Format | t: Studio | d: Dev | D: Deploy | ?: Help | q: Quit"
 	}
 
 	// Display key commands in purple, descriptions in white
@@ -32,8 +32,8 @@ func (a *App) drawHelp(x1, y1, x2, y2 int) {
 	for _, ch := range helpText {
 		style := normalStyle
 
-		// Detect key parts (alphabet, arrow symbols, slash)
-		if ch == '←' || ch == '→' || ch == '↑' || ch == '↓' ||
+		// Detect key parts (alphabet, arrow symbols, slash, question mark)
+		if ch == '←' || ch == '→' || ch == '↑' || ch == '↓' || ch == '?' ||
 		   (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '/' {
 			style = keyStyle
 		}
