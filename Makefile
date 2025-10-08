@@ -51,7 +51,7 @@ help:
 	@sed -n 's/^##//p' ${MAKEFILE_LIST} | column -t -s ':' | sed -e 's/^/ /'
 
 BINARY_NAME=lazyprisma
-VERSION ?= 0.1.2-beta
+VERSION ?= 0.1.3-beta
 DIST_DIR=dist
 
 build-all:

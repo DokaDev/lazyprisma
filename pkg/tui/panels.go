@@ -98,11 +98,15 @@ func (a *App) drawInfoPanel(x1, y1, x2, y2 int) {
 	}
 	prismaStyle := tcell.StyleDefault.Foreground(prismaColor)
 	prismaLine := Line{text: "Prisma:  ", style: style}
+	versionText := prismaStatus + " " + a.status.Version
+	if a.status.IsGlobal {
+		versionText += " (Global)"
+	}
 	prismaLine.extra = append(prismaLine.extra, struct {
 		x     int
 		text  string
 		style tcell.Style
-	}{x: 9, text: prismaStatus + " " + a.status.Version, style: prismaStyle})
+	}{x: 9, text: versionText, style: prismaStyle})
 	lines = append(lines, prismaLine)
 
 	// Empty line
