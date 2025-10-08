@@ -474,6 +474,18 @@ func (a *App) getInfoTotalLines() int {
 }
 
 func (a *App) getDetailTotalLines() int {
+	// Return total lines based on current view mode
+	if a.detailViewMode == "schema_diff" && a.schemaDiff != "" {
+		lines := strings.Split(a.schemaDiff, "\n")
+		return len(lines)
+	}
+
+	if a.detailViewMode == "schema_error" && a.schemaValidationError != "" {
+		lines := strings.Split(a.schemaValidationError, "\n")
+		return len(lines)
+	}
+
+	// Default: migration view
 	content := a.getSelectedMigrationSQL()
 	if content == "" {
 		return 1 // "No migration selected" message
