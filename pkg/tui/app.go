@@ -1011,7 +1011,7 @@ func (a *App) checkDBConnection() {
 func (a *App) addCommandLog(command, output string) {
 	log := CommandLog{
 		Command: command,
-		Output:  output,
+		Output:  a.stripANSI(output), // Strip ANSI codes from output
 		Time:    time.Now().Format("15:04:05"),
 	}
 	a.commandLogs = append(a.commandLogs, log)
@@ -1030,8 +1030,8 @@ func (a *App) addCommandLog(command, output string) {
 }
 
 func (a *App) stripANSI(str string) string {
-	// Remove ANSI escape codes: \x1b[...m format
-	ansiRegex := regexp.MustCompile(`\x1b\[[0-9;]*m`)
+	// Remove all ANSI escape codes (colors, cursor movements, etc.)
+	ansiRegex := regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]`)
 	return ansiRegex.ReplaceAllString(str, "")
 }
 
