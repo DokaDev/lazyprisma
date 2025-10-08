@@ -2,6 +2,7 @@
 generated/prisma
 generated/
 ./prisma
+schema.prisma
 
 lazyprisma
 .env
