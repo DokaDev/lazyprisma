@@ -30,9 +30,10 @@ type App struct {
 	selectedItemIdx      int // Index of selected item in active panel
 	selectedDBOnlyIdx    int // Index of selected item in DB only panel
 	lastSelectedPanel    int // Last selected panel (1: migrations, 2: db only)
-	quit                 bool
-	schemaDiff           string // Schema changes (diff result)
-	showModal            bool   // Whether modal is displayed
+	quit                    bool
+	schemaDiff              string // Schema changes (diff result)
+	schemaValidationError   string // Schema validation error
+	showModal               bool   // Whether modal is displayed
 	modalInput           string // Modal input content
 	modalTitle           string // Modal title
 	modalType            string // Modal type (input, confirm, error)
@@ -53,7 +54,8 @@ type App struct {
 	missingMigrationList    []string        // Sorted list of missing migrations
 	migrationDetailBounds   PanelBounds     // Migration Detail tab click area
 	schemaDiffBounds        PanelBounds     // Schema Diff tab click area
-	detailViewMode          string          // "migration" or "schema_diff"
+	schemaErrorBounds       PanelBounds     // Schema Error tab click area
+	detailViewMode          string          // "migration", "schema_diff", or "schema_error"
 	modalSelectedButton     int             // Modal button selection index (0: left, 1: right)
 	pendingMigrationName    string          // Migration name to execute after reset
 	helpScroll              int             // help modal scroll offset
@@ -111,6 +113,7 @@ func NewApp(status prisma.Status) (*App, error) {
 	go app.checkDBConnection()
 	go app.initialMigrationStatus()
 	go app.checkSchemaDiff()
+	go app.checkSchemaValidation()
 
 	return app, nil
 }
@@ -153,6 +156,18 @@ func (a *App) checkSchemaDiff() {
 		a.schemaDiff = output
 	} else {
 		a.schemaDiff = ""
+	}
+	a.draw()
+}
+
+func (a *App) checkSchemaValidation() {
+	output, err := a.executor.Validate()
+
+	if err != nil && output != "" {
+		// Validation error occurred
+		a.schemaValidationError = a.stripANSI(output)
+	} else {
+		a.schemaValidationError = ""
 	}
 	a.draw()
 }
@@ -732,6 +747,16 @@ func (a *App) handleMouse(ev *tcell.EventMouse) {
 		}
 	}
 
+	// Check Schema Error tab click (only when validation error exists)
+	if a.schemaValidationError != "" {
+		if x >= a.schemaErrorBounds.x1 && x <= a.schemaErrorBounds.x2 &&
+			y >= a.schemaErrorBounds.y1 && y <= a.schemaErrorBounds.y2 {
+			a.detailViewMode = "schema_error"
+			a.detailScroll = 0
+			return
+		}
+	}
+
 	// Check panel bounds to find clicked panel
 	for i, bounds := range a.panelBounds {
 		if x >= bounds.x1 && x <= bounds.x2 && y >= bounds.y1 && y <= bounds.y2 {
@@ -998,8 +1023,9 @@ func (a *App) runMigrateStatus() {
 	// 4. Check DB connection status
 	a.checkDBConnectionSync(output)
 
-	// 5. Check schema diff
+	// 5. Check schema diff and validation
 	go a.checkSchemaDiff()
+	go a.checkSchemaValidation()
 
 	// 6. Add log (append error to output if error exists)
 	logOutput := output

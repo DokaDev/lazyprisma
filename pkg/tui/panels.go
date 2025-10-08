@@ -539,6 +539,73 @@ func (a *App) drawSchemaDiffContent(x1, y1, x2, y2, startY int) {
 	}
 }
 
+func (a *App) drawSchemaErrorContent(x1, y1, x2, y2, startY int) {
+	active := a.activePanelIdx == 3
+	style := tcell.StyleDefault.Foreground(tcell.ColorRed)
+
+	// Display Schema Error content
+	lines := strings.Split(a.schemaValidationError, "\n")
+
+	// Draw lines with scroll applied
+	visibleStart := a.detailScroll
+	visibleEnd := len(lines)
+	panelWidth := x2 - x1 - 3 // Excluding left and right margins
+	y := startY
+
+	for i := visibleStart; i < visibleEnd; i++ {
+		if y > y2-1 {
+			break
+		}
+
+		line := lines[i]
+
+		// Truncate long text
+		if len(line) > panelWidth {
+			line = line[:panelWidth]
+		}
+
+		// Error highlighting
+		errorStyle := style
+		lowerLine := strings.ToLower(line)
+		if strings.Contains(lowerLine, "error") {
+			errorStyle = tcell.StyleDefault.Foreground(tcell.ColorRed).Bold(true)
+		} else if strings.Contains(lowerLine, "warning") {
+			errorStyle = tcell.StyleDefault.Foreground(tcell.ColorYellow)
+		}
+
+		a.drawText(x1+2, y, x2-1, y2-1, line, errorStyle)
+		y++
+	}
+
+	// Draw scrollbar
+	totalLines := len(lines)
+	panelHeight := y2 - y1 - 2 // Actual height excluding borders
+	if totalLines > panelHeight {
+		scrollbarX := x2 - 1
+		scrollbarStyle := tcell.StyleDefault.Foreground(tcell.ColorWhite)
+		if active {
+			scrollbarStyle = tcell.StyleDefault.Foreground(tcell.ColorGreen)
+		}
+
+		// Calculate scrollbar height
+		scrollbarHeight := (panelHeight * panelHeight) / totalLines
+		if scrollbarHeight < 1 {
+			scrollbarHeight = 1
+		}
+
+		// Calculate scrollbar position
+		scrollbarPos := (a.detailScroll * panelHeight) / totalLines
+		scrollbarY := y1 + 1 + scrollbarPos
+
+		// Draw scrollbar
+		for i := 0; i < scrollbarHeight; i++ {
+			if scrollbarY+i < y2 {
+				a.screen.SetContent(scrollbarX, scrollbarY+i, '█', nil, scrollbarStyle)
+			}
+		}
+	}
+}
+
 func (a *App) drawMigrationDetailPanel(x1, y1, x2, y2 int) {
 	active := a.activePanelIdx == 3
 
@@ -605,10 +672,35 @@ func (a *App) drawMigrationDetailPanel(x1, y1, x2, y2 int) {
 			x2: currentX + len(tab2Text) - 1,
 			y2: tabY,
 		}
+		currentX += len(tab2Text)
+	}
+
+	// Tab 3: Schema Error (only when validation error exists)
+	if a.schemaValidationError != "" {
+		tab3Text := " Schema Error "
+		tab3Style := tcell.StyleDefault.Foreground(tcell.ColorRed)
+		if a.detailViewMode == "schema_error" {
+			tab3Style = tcell.StyleDefault.Foreground(tcell.ColorGreen).Bold(true)
+		}
+		for i, r := range tab3Text {
+			a.screen.SetContent(currentX+i, tabY, r, nil, tab3Style)
+		}
+		a.schemaErrorBounds = PanelBounds{
+			x1: currentX,
+			y1: tabY,
+			x2: currentX + len(tab3Text) - 1,
+			y2: tabY,
+		}
 	}
 
 	contentStyle := tcell.StyleDefault.Foreground(tcell.ColorWhite)
 	y := y1 + 2
+
+	// Display schema error content when in Schema Error mode
+	if a.detailViewMode == "schema_error" && a.schemaValidationError != "" {
+		a.drawSchemaErrorContent(x1, y1, x2, y2, y)
+		return
+	}
 
 	// Display diff content when in Schema Diff mode
 	if a.detailViewMode == "schema_diff" && a.schemaDiff != "" {
