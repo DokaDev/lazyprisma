@@ -8,12 +8,12 @@ Terminal UI tool for managing Prisma migrations and database.
 
 ### Homebrew (macOS/Linux)
 ```bash
-brew tap linkareer_123/lazyprisma
+brew tap DokaDev/lazyprisma
 brew install lazyprisma
 ```
 
 ### Manual Installation
-Download the latest binary from [Releases](https://github.com/linkareer_123/lazyprisma/releases).
+Download the latest binary from [Releases](https://github.com/DokaDev/lazyprisma/releases).
 
 ## Prerequisites
 LazyPrisma requires Prisma CLI to be installed in your project:
