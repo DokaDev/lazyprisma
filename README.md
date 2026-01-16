@@ -2,7 +2,10 @@
 
 A Terminal UI tool for managing Prisma migrations and the database, designed for developers who prefer the command line.
 
-<img width="1458" height="918" alt="image" src="https://github.com/user-attachments/assets/71c2db93-b784-4a0b-9740-7bb3710c4caf" />
+<!-- <img width="1458" height="918" alt="image" src="https://github.com/user-attachments/assets/71c2db93-b784-4a0b-9740-7bb3710c4caf" /> -->
+![2](https://github.com/user-attachments/assets/24f25041-03c5-4bcc-971f-8155e0a1d1d9)
+
+
 
 > **Note on Appearance**: The screenshot above features the **Dracula Dark** theme and **JetBrains Mono Nerd Font**. We highly recommend using a [Nerd Font](https://www.nerdfonts.com/) for the best visual experience, as future updates will introduce more icons and symbols.
 
