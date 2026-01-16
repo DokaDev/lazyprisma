@@ -114,7 +114,11 @@ func extractURLFromConfig(projectDir, configPath string) (string, string, bool, 
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
+	// Match: url: env("DATABASE_URL")
 	envRegex := regexp.MustCompile(`url:\s*env\(['"]([^'"]+)['"]\)`)
+	// Match: url: process.env['DATABASE_URL']
+	processEnvRegex := regexp.MustCompile(`url:\s*process\.env\[['"]([^'"]+)['"]\]`)
+	// Match: url: "mysql://..."
 	hardcodedRegex := regexp.MustCompile(`url:\s*['"]([^'"]+)['"]`)
 
 	for scanner.Scan() {
@@ -122,6 +126,13 @@ func extractURLFromConfig(projectDir, configPath string) (string, string, bool, 
 
 		// Check for env() usage
 		if match := envRegex.FindStringSubmatch(line); match != nil {
+			envVar := match[1]
+			url := resolveEnvVar(projectDir, envVar)
+			return url, envVar, false, nil
+		}
+
+		// Check for process.env usage
+		if match := processEnvRegex.FindStringSubmatch(line); match != nil {
 			envVar := match[1]
 			url := resolveEnvVar(projectDir, envVar)
 			return url, envVar, false, nil

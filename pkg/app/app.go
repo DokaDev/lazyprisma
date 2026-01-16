@@ -838,8 +838,8 @@ func (a *App) createManualMigration(migrationName string) {
 		return
 	}
 
-	// Generate timestamp (YYYYMMDDHHmmss format)
-	timestamp := time.Now().Format("20060102150405")
+	// Generate timestamp (YYYYMMDDHHmmss format) in UTC to match Prisma CLI behavior
+	timestamp := time.Now().UTC().Format("20060102150405")
 	folderName := fmt.Sprintf("%s_%s", timestamp, migrationName)
 
 	// Migration folder path (prisma/migrations/{timestamp}_{name})

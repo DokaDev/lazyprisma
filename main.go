@@ -11,7 +11,20 @@ import (
 	_ "github.com/dokadev/lazyprisma/pkg/database/drivers"
 )
 
+const (
+	Version   = "v0.2.1"
+	Developer = "DokaLab"
+)
+
 func main() {
+	// Handle version flag
+	if len(os.Args) > 1 {
+		if os.Args[1] == "--version" || os.Args[1] == "-v" {
+			fmt.Printf("LazyPrisma %s (%s)\n", Version, Developer)
+			os.Exit(0)
+		}
+	}
+
 	// Check if current directory is a Prisma workspace
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -31,8 +44,8 @@ func main() {
 	tuiApp, err := app.NewApp(app.AppConfig{
 		DebugMode: false,
 		AppName:   "LazyPrisma",
-		Version:   "v0.2.0",
-		Developer: "DokaLab",
+		Version:   Version,
+		Developer: Developer,
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to create app: %v\n", err)
