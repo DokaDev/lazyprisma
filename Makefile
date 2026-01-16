@@ -1,8 +1,10 @@
 # Binary name
 BINARY_NAME=lazyprisma
+VERSION ?= 0.2.0
 
-# Build directory
-BUILD_DIR=.
+# Directories
+BUILD_DIR=build
+DIST_DIR=dist
 
 # Go parameters
 GOCMD=go
@@ -12,7 +14,7 @@ GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
 
-.PHONY: all build clean run test install help
+.PHONY: all build clean run test install help build-all package deps
 
 all: build
 
@@ -23,12 +25,13 @@ build:
 ## clean: Remove build artifacts
 clean:
 	$(GOCLEAN)
-	rm -f $(BUILD_DIR)/$(BINARY_NAME)
-	rm -f ./*.tar.gz
+	rm -rf $(BUILD_DIR)
+	rm -rf $(DIST_DIR)
+	rm -f *.tar.gz
 
 ## run: Build and run the application
 run: build
-	./$(BINARY_NAME)
+	$(BUILD_DIR)/$(BINARY_NAME)
 
 ## test: Run tests
 test:
@@ -43,29 +46,14 @@ deps:
 install:
 	$(GOCMD) install
 
-## help: Show this help message
-help:
-	@echo "Usage: make [target]"
-	@echo ""
-	@echo "Targets:"
-	@sed -n 's/^##//p' ${MAKEFILE_LIST} | column -t -s ':' | sed -e 's/^/ /'
-
-BINARY_NAME=lazyprisma
-VERSION ?= 0.1.7
-DIST_DIR=dist
-
-build-all:
+## build-all: Build for multiple platforms (Darwin amd64/arm64)
+build-all: clean
 	mkdir -p $(DIST_DIR)/darwin-amd64
 	mkdir -p $(DIST_DIR)/darwin-arm64
 	GOOS=darwin GOARCH=amd64 $(GOBUILD) -o $(DIST_DIR)/darwin-amd64/$(BINARY_NAME) .
 	GOOS=darwin GOARCH=arm64 $(GOBUILD) -o $(DIST_DIR)/darwin-arm64/$(BINARY_NAME) .
 
-# package: build-all
-# 	tar -czvf $(BINARY_NAME)-v$(VERSION)-darwin-amd64.tar.gz -C $(DIST_DIR)/darwin-amd64 $(BINARY_NAME)
-# 	tar -czvf $(BINARY_NAME)-v$(VERSION)-darwin-arm64.tar.gz -C $(DIST_DIR)/darwin-arm64 $(BINARY_NAME)
-
-# 	rm -rf $(DIST_DIR)
-
+## package: Create tar.gz packages for Homebrew and calculate checksums
 package: build-all
 	tar -czvf $(BINARY_NAME)-v$(VERSION)-darwin-amd64.tar.gz -C $(DIST_DIR)/darwin-amd64 $(BINARY_NAME)
 	tar -czvf $(BINARY_NAME)-v$(VERSION)-darwin-arm64.tar.gz -C $(DIST_DIR)/darwin-arm64 $(BINARY_NAME)
@@ -79,3 +67,10 @@ package: build-all
 	@echo "\n✅ Done.\n"
 
 	rm -rf $(DIST_DIR)
+
+## help: Show this help message
+help:
+	@echo "Usage: make [target]"
+	@echo ""
+	@echo "Targets:"
+	@sed -n 's/^##//p' ${MAKEFILE_LIST} | column -t -s ':' | sed -e 's/^/ /'

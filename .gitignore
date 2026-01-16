@@ -1,17 +1,17 @@
-.claude/
-generated/prisma
-generated/
-./prisma
-schema.prisma
+.DS_Store
 
+# Binaries
+build/
+dist/
 lazyprisma
+*.tar.gz
+
+# Environment
 .env
 
-# GoReleaser
-dist/
+# IDEs
+.idea/
+.vscode/
 
-./*.tar.gz
-
-# DS_Store
-.DS_Store
-./**/.DS_Store
+# Logs
+*.log

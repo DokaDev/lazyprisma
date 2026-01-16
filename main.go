@@ -1,80 +1,73 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"log"
 	"os"
-	"strings"
 
-	"lazyprisma/pkg/prisma"
-	"lazyprisma/pkg/tui"
-	"lazyprisma/pkg/version"
+	"github.com/dokadev/lazyprisma/pkg/app"
+	"github.com/dokadev/lazyprisma/pkg/prisma"
+
+	// Register database drivers
+	_ "github.com/dokadev/lazyprisma/pkg/database/drivers"
 )
 
 func main() {
-	// Handle --version flag
-	if len(os.Args) > 1 && (os.Args[1] == "--version" || os.Args[1] == "-v") {
-		fmt.Printf("lazyprisma version %s\n", version.Version)
-		os.Exit(0)
-	}
-
-	status := prisma.GetStatus()
-
-	if !status.CLIAvailable {
-		fmt.Println("Prisma CLI is not available!")
-		fmt.Println("Please install Prisma first:")
-		fmt.Println("  npm install -D prisma")
+	// Check if current directory is a Prisma workspace
+	cwd, err := os.Getwd()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: Failed to get current directory: %v\n", err)
 		os.Exit(1)
 	}
 
-	if !status.SchemaExists {
-		if askForInit() {
-			fmt.Println("\nInitializing Prisma...")
-			executor := prisma.NewExecutor()
-			output, err := executor.Init()
-
-			if err != nil {
-				fmt.Printf("Error: %v\n", err)
-				fmt.Println(output)
-				os.Exit(1)
-			}
-
-			fmt.Println("Prisma initialized successfully!")
-			fmt.Println(output)
-			fmt.Println("\nPress Enter to continue...")
-			bufio.NewReader(os.Stdin).ReadBytes('\n')
-
-			status = prisma.GetStatus()
-		}
+	if !prisma.IsWorkspace(cwd) {
+		fmt.Fprintf(os.Stderr, "Error: Current directory is not a Prisma workspace.\n")
+		fmt.Fprintf(os.Stderr, "\nExpected one of:\n")
+		fmt.Fprintf(os.Stderr, "  - prisma.config.ts (Prisma v7.0+)\n")
+		fmt.Fprintf(os.Stderr, "  - prisma/schema.prisma (Prisma < v7.0)\n")
+		os.Exit(1)
 	}
 
-	app, err := tui.NewApp(status)
+	// App 생성
+	tuiApp, err := app.NewApp(app.AppConfig{
+		DebugMode: false,
+		AppName:   "LazyPrisma",
+		Version:   "v0.2.0",
+		Developer: "DokaLab",
+	})
 	if err != nil {
-		log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "Failed to create app: %v\n", err)
+		os.Exit(1)
 	}
 
-	if err := app.Run(); err != nil {
-		log.Fatal(err)
+	// 패널 생성 및 등록
+	workspace := app.NewWorkspacePanel(tuiApp.GetGui())
+	migrations := app.NewMigrationsPanel(tuiApp.GetGui())
+	details := app.NewDetailsPanel(tuiApp.GetGui())
+	output := app.NewOutputPanel(tuiApp.GetGui())
+	statusbar := app.NewStatusBar(tuiApp.GetGui(), tuiApp)
+
+	// Connect panels
+	migrations.SetDetailsPanel(details)
+	details.SetApp(tuiApp)
+
+	tuiApp.RegisterPanel(workspace)
+	tuiApp.RegisterPanel(migrations)
+	tuiApp.RegisterPanel(details)
+	tuiApp.RegisterPanel(output)
+	tuiApp.RegisterPanel(statusbar)
+
+	// 키바인딩 등록
+	if err := tuiApp.RegisterKeybindings(); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to register keybindings: %v\n", err)
+		os.Exit(1)
 	}
-}
 
-func askForInit() bool {
-	fmt.Println("No Prisma schema detected.")
-	fmt.Println("")
-	fmt.Println("Would you like to initialize Prisma now?")
-	fmt.Println("This will:")
-	fmt.Println("  - Create prisma/schema.prisma")
-	fmt.Println("  - Generate .env file with DATABASE_URL")
-	fmt.Println("")
-	fmt.Print("Initialize Prisma? [Y/n]: ")
+	// 마우스 바인딩 등록
+	tuiApp.RegisterMouseBindings()
 
-	reader := bufio.NewReader(os.Stdin)
-	input, err := reader.ReadString('\n')
-	if err != nil {
-		return false
+	// 실행
+	if err := tuiApp.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "App error: %v\n", err)
+		os.Exit(1)
 	}
-
-	input = strings.TrimSpace(strings.ToLower(input))
-	return input == "" || input == "y" || input == "yes"
 }
