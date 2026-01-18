@@ -1,5 +1,8 @@
 # LazyPrisma
 
+<img width="230" alt="lazyprisma_ico_scl" src="https://github.com/user-attachments/assets/5df09da0-61c2-4a10-a58a-d8190a5a4fd6" />
+
+
 A Terminal UI tool for managing Prisma migrations and the database, designed for developers who prefer the command line.
 
 <!-- <img width="1458" height="918" alt="image" src="https://github.com/user-attachments/assets/71c2db93-b784-4a0b-9740-7bb3710c4caf" /> -->
