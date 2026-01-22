@@ -2,6 +2,8 @@
 
 <img width="230" alt="lazyprisma_ico_scl" src="https://github.com/user-attachments/assets/5df09da0-61c2-4a10-a58a-d8190a5a4fd6" />
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/DokaDev/lazyprisma)
+
 
 A Terminal UI tool for managing Prisma migrations and the database, designed for developers who prefer the command line.
 
