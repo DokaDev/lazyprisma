@@ -19,132 +19,150 @@ func (a *App) MigrateDeploy() {
 		return
 	}
 
-	// 1. Refresh first to ensure DB connection is current
-	a.RefreshAll()
+	// Run everything in background to avoid blocking UI during refresh/checks
+	go func() {
+		// 1. Refresh first to ensure DB connection is current
+		a.refreshPanels()
 
-	// 2. Check DB connection
-	migrationsPanel, ok := a.panels[ViewMigrations].(*MigrationsPanel)
-	if !ok {
-		a.finishCommand()
-		modal := NewMessageModal(a.g, "Error",
-			"Failed to access migrations panel.",
-		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
-		a.OpenModal(modal)
-		return
-	}
-
-	// Check if DB is connected
-	if !migrationsPanel.dbConnected {
-		a.finishCommand()
-		modal := NewMessageModal(a.g, "Database Connection Required",
-			"No database connection detected.",
-			"Please ensure your database is running and accessible.",
-		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
-		a.OpenModal(modal)
-		return
-	}
-
-	outputPanel, ok := a.panels[ViewOutputs].(*OutputPanel)
-	if !ok {
-		a.finishCommand() // Clean up if panel not found
-		return
-	}
-
-	// Get current working directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		a.finishCommand()
-		outputPanel.LogAction("Migrate Deploy Error", "Failed to get working directory: "+err.Error())
-		modal := NewMessageModal(a.g, "Migrate Deploy Error",
-			"Failed to get working directory:",
-			err.Error(),
-		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
-		a.OpenModal(modal)
-		return
-	}
-
-	// Log action start
-	outputPanel.LogAction("Migrate Deploy", "Running prisma migrate deploy...")
-
-	// Create command builder
-	builder := commands.NewCommandBuilder(commands.NewPlatform())
-
-	// Build prisma migrate deploy command
-	deployCmd := builder.New("npx", "prisma", "migrate", "deploy").
-		WithWorkingDir(cwd).
-		StreamOutput().
-		OnStdout(func(line string) {
-			// Update UI on main thread
+		// 2. Check DB connection
+		migrationsPanel, ok := a.panels[ViewMigrations].(*MigrationsPanel)
+		if !ok {
+			a.finishCommand()
 			a.g.Update(func(g *gocui.Gui) error {
-				if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
-					out.AppendOutput("  " + line)
-				}
+				modal := NewMessageModal(a.g, "Error",
+					"Failed to access migrations panel.",
+				).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
+				a.OpenModal(modal)
 				return nil
 			})
-		}).
-		OnStderr(func(line string) {
-			// Update UI on main thread
+			return
+		}
+
+		// Check if DB is connected
+		if !migrationsPanel.dbConnected {
+			a.finishCommand()
 			a.g.Update(func(g *gocui.Gui) error {
-				if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
-					out.AppendOutput("  " + line)
-				}
+				modal := NewMessageModal(a.g, "Database Connection Required",
+					"No database connection detected.",
+					"Please ensure your database is running and accessible.",
+				).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
+				a.OpenModal(modal)
 				return nil
 			})
-		}).
-		OnComplete(func(exitCode int) {
-			// Update UI on main thread
+			return
+		}
+
+		outputPanel, ok := a.panels[ViewOutputs].(*OutputPanel)
+		if !ok {
+			a.finishCommand() // Clean up if panel not found
+			return
+		}
+
+		// Get current working directory
+		cwd, err := os.Getwd()
+		if err != nil {
+			a.finishCommand()
 			a.g.Update(func(g *gocui.Gui) error {
-				a.finishCommand() // Finish command
-				if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
-					if exitCode == 0 {
-						out.LogAction("Migrate Deploy Complete", "Migrations applied successfully")
-						// Refresh all panels to show updated migration status
-						a.RefreshAll()
-						// Show success modal
-						modal := NewMessageModal(a.g, "Migrate Deploy Successful",
-							"Migrations applied successfully!",
-						).WithStyle(MessageModalStyle{TitleColor: ColorGreen, BorderColor: ColorGreen})
-						a.OpenModal(modal)
-					} else {
-						out.LogAction("Migrate Deploy Failed", fmt.Sprintf("Migrate deploy failed with exit code: %d", exitCode))
-						// Refresh even on failure - DB state may have changed
-						a.RefreshAll()
-						modal := NewMessageModal(a.g, "Migrate Deploy Failed",
-							fmt.Sprintf("Prisma migrate deploy failed with exit code: %d", exitCode),
-							"Check output panel for details.",
+				outputPanel.LogAction("Migrate Deploy Error", "Failed to get working directory: "+err.Error())
+				modal := NewMessageModal(a.g, "Migrate Deploy Error",
+					"Failed to get working directory:",
+					err.Error(),
+				).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
+				a.OpenModal(modal)
+				return nil
+			})
+			return
+		}
+
+		// Log action start
+		a.g.Update(func(g *gocui.Gui) error {
+			outputPanel.LogAction("Migrate Deploy", "Running prisma migrate deploy...")
+			return nil
+		})
+
+		// Create command builder
+		builder := commands.NewCommandBuilder(commands.NewPlatform())
+
+		// Build prisma migrate deploy command
+		deployCmd := builder.New("npx", "prisma", "migrate", "deploy").
+			WithWorkingDir(cwd).
+			StreamOutput().
+			OnStdout(func(line string) {
+				// Update UI on main thread
+				a.g.Update(func(g *gocui.Gui) error {
+					if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+						out.AppendOutput("  " + line)
+					}
+					return nil
+				})
+			}).
+			OnStderr(func(line string) {
+				// Update UI on main thread
+				a.g.Update(func(g *gocui.Gui) error {
+					if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+						out.AppendOutput("  " + line)
+					}
+					return nil
+				})
+			}).
+			OnComplete(func(exitCode int) {
+				// Update UI on main thread
+				a.g.Update(func(g *gocui.Gui) error {
+					a.finishCommand() // Finish command
+					if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+						if exitCode == 0 {
+							out.LogAction("Migrate Deploy Complete", "Migrations applied successfully")
+							// Refresh all panels to show updated migration status
+							a.RefreshAll()
+							// Show success modal
+							modal := NewMessageModal(a.g, "Migrate Deploy Successful",
+								"Migrations applied successfully!",
+							).WithStyle(MessageModalStyle{TitleColor: ColorGreen, BorderColor: ColorGreen})
+							a.OpenModal(modal)
+						} else {
+							out.LogAction("Migrate Deploy Failed", fmt.Sprintf("Migrate deploy failed with exit code: %d", exitCode))
+							// Refresh even on failure - DB state may have changed
+							a.RefreshAll()
+							modal := NewMessageModal(a.g, "Migrate Deploy Failed",
+								fmt.Sprintf("Prisma migrate deploy failed with exit code: %d", exitCode),
+								"Check output panel for details.",
+							).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
+							a.OpenModal(modal)
+						}
+					}
+					return nil
+				})
+			}).
+			OnError(func(err error) {
+				// Update UI on main thread
+				a.g.Update(func(g *gocui.Gui) error {
+					a.finishCommand() // Finish command
+					if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+						out.LogAction("Migrate Deploy Error", err.Error())
+						modal := NewMessageModal(a.g, "Migrate Deploy Error",
+							"Failed to run prisma migrate deploy:",
+							err.Error(),
 						).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 						a.OpenModal(modal)
 					}
-				}
-				return nil
+					return nil
+				})
 			})
-		}).
-		OnError(func(err error) {
-			// Update UI on main thread
-			a.g.Update(func(g *gocui.Gui) error {
-				a.finishCommand() // Finish command
-				if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
-					out.LogAction("Migrate Deploy Error", err.Error())
-					modal := NewMessageModal(a.g, "Migrate Deploy Error",
-						"Failed to run prisma migrate deploy:",
-						err.Error(),
-					).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
-					a.OpenModal(modal)
-				}
-				return nil
-			})
-		})
 
-	// Run async to avoid blocking UI (spinner will show automatically)
-	if err := deployCmd.RunAsync(); err != nil {
-		a.finishCommand() // Clean up if command fails to start
-		outputPanel.LogAction("Migrate Deploy Error", "Failed to start migrate deploy: "+err.Error())
-		modal := NewMessageModal(a.g, "Migrate Deploy Error",
-			"Failed to start migrate deploy:",
-			err.Error(),
-		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
-		a.OpenModal(modal)
-	}
+		// Run async to avoid blocking UI (spinner will show automatically)
+		if err := deployCmd.RunAsync(); err != nil {
+			a.finishCommand() // Clean up if command fails to start
+			a.g.Update(func(g *gocui.Gui) error {
+				outputPanel.LogAction("Migrate Deploy Error", "Failed to start migrate deploy: "+err.Error())
+				modal := NewMessageModal(a.g, "Migrate Deploy Error",
+					"Failed to start migrate deploy:",
+					err.Error(),
+				).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
+				a.OpenModal(modal)
+				return nil
+			})
+		}
+	}()
 }
 
 // MigrateDev opens a list modal to choose migration type

@@ -431,20 +431,7 @@ func (a *App) RefreshAll(onComplete ...func()) bool {
 	go func() {
 		defer a.finishCommand() // Always mark command as complete
 
-		// Refresh workspace panel
-		if workspacePanel, ok := a.panels[ViewWorkspace].(*WorkspacePanel); ok {
-			workspacePanel.Refresh()
-		}
-
-		// Refresh migrations panel
-		if migrationsPanel, ok := a.panels[ViewMigrations].(*MigrationsPanel); ok {
-			migrationsPanel.Refresh()
-		}
-
-		// Refresh Details panel Action-Needed data
-		if detailsPanel, ok := a.panels[ViewDetails].(*DetailsPanel); ok {
-			detailsPanel.LoadActionNeededData()
-		}
+		a.refreshPanels()
 
 		// Update UI on main thread (thread-safe)
 		a.g.Update(func(g *gocui.Gui) error {
@@ -462,4 +449,22 @@ func (a *App) RefreshAll(onComplete ...func()) bool {
 	}()
 
 	return true
+}
+
+// refreshPanels refreshes all panels (blocking, internal)
+func (a *App) refreshPanels() {
+	// Refresh workspace panel
+	if workspacePanel, ok := a.panels[ViewWorkspace].(*WorkspacePanel); ok {
+		workspacePanel.Refresh()
+	}
+
+	// Refresh migrations panel
+	if migrationsPanel, ok := a.panels[ViewMigrations].(*MigrationsPanel); ok {
+		migrationsPanel.Refresh()
+	}
+
+	// Refresh Details panel Action-Needed data
+	if detailsPanel, ok := a.panels[ViewDetails].(*DetailsPanel); ok {
+		detailsPanel.LoadActionNeededData()
+	}
 }
