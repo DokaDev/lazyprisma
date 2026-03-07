@@ -54,6 +54,11 @@ type StatusBarConfig struct {
 
 var spinnerFrames = []rune{'|', '/', '-', '\\'}
 
+// SpinnerFrameCount returns the number of spinner animation frames.
+func SpinnerFrameCount() uint32 {
+	return uint32(len(spinnerFrames))
+}
+
 type StatusBarContext struct {
 	*BaseContext
 
@@ -118,7 +123,7 @@ func (s *StatusBarContext) Draw(dim boxlayout.Dimensions) error {
 
 	// Show spinner if command is running
 	if s.state.IsCommandRunning() {
-		frameIndex := s.state.GetSpinnerFrame()
+		frameIndex := s.state.GetSpinnerFrame() % uint32(len(spinnerFrames))
 		spinner := string(spinnerFrames[frameIndex])
 
 		// Get running task name

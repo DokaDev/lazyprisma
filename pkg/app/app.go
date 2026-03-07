@@ -17,8 +17,6 @@ const (
 	spinnerTickInterval = 50 * time.Millisecond
 )
 
-var spinnerFrames = []rune{'|', '/', '-', '\\'}
-
 type App struct {
 	g            *gocui.Gui
 	config       AppConfig
@@ -227,7 +225,7 @@ func (a *App) startSpinnerUpdater() {
 				if a.commandRunning.Load() {
 					// Increment frame index (0-3, wrapping around)
 					currentFrame := a.spinnerFrame.Load()
-					nextFrame := (currentFrame + 1) % uint32(len(spinnerFrames))
+					nextFrame := (currentFrame + 1) % context.SpinnerFrameCount()
 					a.spinnerFrame.Store(nextFrame)
 
 					// Trigger UI update (thread-safe)
@@ -246,7 +244,7 @@ func (a *App) startSpinnerUpdater() {
 // HandlePanelClick is the public wrapper for panel-click focus switching.
 // It is used as a callback by contexts that manage their own mouse events.
 func (a *App) HandlePanelClick(viewID string) {
-	a.handlePanelClick(viewID)
+	_ = a.handlePanelClick(viewID) // error intentionally ignored: click handler fallback
 }
 
 // handlePanelClick handles mouse click on a panel to switch focus

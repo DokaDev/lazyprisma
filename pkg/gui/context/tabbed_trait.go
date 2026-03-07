@@ -77,6 +77,11 @@ func (self *TabbedTrait) SaveTabOriginY(originY int) {
 	self.tabOriginY[self.currentTabIdx] = originY
 }
 
+// ResetTabOriginYAt resets the saved scroll position for the tab at the given index.
+func (self *TabbedTrait) ResetTabOriginYAt(idx int) {
+	self.tabOriginY[idx] = 0
+}
+
 // RestoreTabOriginY returns the saved scroll position for the current tab.
 // Returns 0 if no position was previously saved.
 // Call this after switching tabs.

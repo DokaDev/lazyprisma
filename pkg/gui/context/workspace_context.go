@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/dokadev/lazyprisma/pkg/database"
-	_ "github.com/dokadev/lazyprisma/pkg/database/drivers" // Register database drivers
 	"github.com/dokadev/lazyprisma/pkg/git"
 	"github.com/dokadev/lazyprisma/pkg/gui/types"
 	"github.com/dokadev/lazyprisma/pkg/i18n"

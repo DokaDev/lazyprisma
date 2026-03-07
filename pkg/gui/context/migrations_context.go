@@ -109,7 +109,6 @@ func NewMigrationsContext(opts MigrationsContextOpts) *MigrationsContext {
 	mc := &MigrationsContext{
 		SimpleContext:  simpleCtx,
 		ScrollableTrait: &ScrollableTrait{},
-		TabbedTrait:    &TabbedTrait{},
 		g:              opts.Gui,
 		tr:             opts.Tr,
 		items:          []string{},

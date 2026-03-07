@@ -251,7 +251,7 @@ func (d *DetailsContext) UpdateFromMigration(migration *prisma.Migration, tabNam
 	// Only reset scroll position for Details tab if viewing a different migration
 	if migration != nil && d.currentMigrationName != migration.Name {
 		// Reset Details tab scroll position only
-		d.TabbedTrait.tabOriginY[d.tabIdxByName(d.tr.TabDetails)] = 0
+		d.TabbedTrait.ResetTabOriginYAt(d.tabIdxByName(d.tr.TabDetails))
 		// If currently on Details tab, also update originY
 		if d.TabbedTrait.GetCurrentTab() == d.tr.TabDetails {
 			d.ScrollableTrait.SetOriginY(0)
@@ -259,7 +259,7 @@ func (d *DetailsContext) UpdateFromMigration(migration *prisma.Migration, tabNam
 		d.currentMigrationName = migration.Name
 	} else if migration == nil {
 		// Reset Details tab scroll position only
-		d.TabbedTrait.tabOriginY[d.tabIdxByName(d.tr.TabDetails)] = 0
+		d.TabbedTrait.ResetTabOriginYAt(d.tabIdxByName(d.tr.TabDetails))
 		// If currently on Details tab, also update originY
 		if d.TabbedTrait.GetCurrentTab() == d.tr.TabDetails {
 			d.ScrollableTrait.SetOriginY(0)
