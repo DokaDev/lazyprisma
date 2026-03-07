@@ -426,7 +426,7 @@ func (a *App) createManualMigration(migrationName string) {
 	// Create migration folder
 	if err := os.MkdirAll(migrationFolder, 0755); err != nil {
 		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleError,
-			a.Tr.ModalMsgFailedDeleteFolder,
+			a.Tr.ModalMsgFailedCreateFolder,
 			err.Error(),
 		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 		a.OpenModal(modal)
@@ -439,7 +439,7 @@ func (a *App) createManualMigration(migrationName string) {
 
 	if err := os.WriteFile(migrationFile, []byte(initialContent), 0644); err != nil {
 		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleError,
-			a.Tr.ErrorFailedGetWorkingDir,
+			a.Tr.ModalMsgFailedWriteMigrationFile,
 			err.Error(),
 		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 		a.OpenModal(modal)

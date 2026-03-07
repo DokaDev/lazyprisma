@@ -96,7 +96,9 @@ type TranslationSet struct {
 	ModalMsgCannotDeleteNoLocalFile     string
 	ModalMsgMigrationAlreadyApplied     string
 	ModalMsgDeleteLocalInconsistency    string
+	ModalMsgFailedCreateFolder          string
 	ModalMsgFailedDeleteFolder          string
+	ModalMsgFailedWriteMigrationFile    string
 	ModalMsgMigrationDeletedSuccess     string
 	ModalMsgFailedCopyClipboard         string
 	ModalMsgCopiedToClipboard           string
@@ -384,7 +386,9 @@ func EnglishTranslationSet() *TranslationSet {
 		ModalMsgCannotDeleteNoLocalFile:      "Cannot delete a migration that has no local file.",
 		ModalMsgMigrationAlreadyApplied:      "This migration has already been applied to the database.",
 		ModalMsgDeleteLocalInconsistency:     "Deleting it locally will cause inconsistency.",
+		ModalMsgFailedCreateFolder:           "Failed to create migration folder:",
 		ModalMsgFailedDeleteFolder:           "Failed to delete migration folder:",
+		ModalMsgFailedWriteMigrationFile:     "Failed to write migration file:",
 		ModalMsgMigrationDeletedSuccess:      "Migration deleted successfully.",
 		ModalMsgFailedCopyClipboard:          "Failed to copy to clipboard:",
 		ModalMsgCopiedToClipboard:            "%s copied to clipboard!",
