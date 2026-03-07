@@ -652,11 +652,11 @@ func (m *MigrationsContext) loadItemsForCurrentTab() {
 		// Add index number with colour based on migration status
 		var indexPrefix string
 		if mig.IsEmpty {
-			indexPrefix = fmt.Sprintf("\033[31m%4d │\033[0m ", i+1) // Red for empty
+			indexPrefix = style.Red(fmt.Sprintf("%4d │", i+1)) + " " // Red for empty
 		} else if mig.HasDownSQL {
-			indexPrefix = fmt.Sprintf("\033[32m%4d │\033[0m ", i+1) // Green for down.sql
+			indexPrefix = style.Green(fmt.Sprintf("%4d │", i+1)) + " " // Green for down.sql
 		} else {
-			indexPrefix = fmt.Sprintf("\033[90m%4d │\033[0m ", i+1) // Gray for normal
+			indexPrefix = style.Stylize(fmt.Sprintf("%4d │", i+1), "90", false) + " " // Gray for normal
 		}
 
 		// Colour priority: Failed > Checksum Mismatch > Empty > Pending > Normal

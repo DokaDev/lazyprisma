@@ -571,7 +571,7 @@ func (d *DetailsContext) buildActionNeededContent() string {
 
 		// Show full validation output (contains detailed error info)
 		if d.validationResult.Output != "" {
-			content.WriteString(style.Stylize(d.tr.ActionNeededValidationOutputLabel, "33", true) + "\n")
+			content.WriteString(style.YellowBold(d.tr.ActionNeededValidationOutputLabel) + "\n")
 			// Display the full output with proper formatting (preserve all line breaks)
 			outputLines := strings.Split(d.validationResult.Output, "\n")
 			for _, line := range outputLines {
@@ -588,7 +588,7 @@ func (d *DetailsContext) buildActionNeededContent() string {
 			content.WriteString("\n")
 		}
 
-		content.WriteString(style.Stylize(d.tr.ActionNeededRecommendedActionsLabel, "33", true) + "\n")
+		content.WriteString(style.YellowBold(d.tr.ActionNeededRecommendedActionsLabel) + "\n")
 		content.WriteString(d.tr.ActionNeededFixSchemaErrors)
 		content.WriteString(d.tr.ActionNeededCheckLineNumbers)
 		content.WriteString(d.tr.ActionNeededReferPrismaDocumentation)
@@ -689,9 +689,9 @@ func detailsHighlightSQL(code string) string {
 	}
 
 	// Get style (dracula is a popular dark theme)
-	style := styles.Get("dracula")
-	if style == nil {
-		style = styles.Fallback
+	chromaStyle := styles.Get("dracula")
+	if chromaStyle == nil {
+		chromaStyle = styles.Fallback
 	}
 
 	// Get terminal formatter with 256 colors
@@ -707,7 +707,7 @@ func detailsHighlightSQL(code string) string {
 		return code // Return original if highlighting fails
 	}
 
-	err = formatter.Format(&buf, style, iterator)
+	err = formatter.Format(&buf, chromaStyle, iterator)
 	if err != nil {
 		return code // Return original if highlighting fails
 	}
@@ -722,7 +722,7 @@ func detailsHighlightSQL(code string) string {
 			result.WriteString("\n")
 		}
 		// Line number in gray color, right-aligned to 4 digits
-		result.WriteString(fmt.Sprintf("\033[90m%4d │\033[0m %s", i+1, line))
+		result.WriteString(style.Stylize(fmt.Sprintf("%4d │", i+1), "90", false) + " " + line)
 	}
 
 	return result.String()
