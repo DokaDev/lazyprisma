@@ -611,9 +611,9 @@ func (a *App) executeResolve(migrationName string, action string) {
 	}
 
 	// Log action start
-	actionLabel := "applied"
+	actionLabel := a.Tr.ActionLabelApplied
 	if action == "rolled-back" {
-		actionLabel = "rolled back"
+		actionLabel = a.Tr.ActionLabelRolledBack
 	}
 	outputPanel.LogAction(a.Tr.LogActionMigrateResolve, fmt.Sprintf(a.Tr.LogMsgMarkingMigration, actionLabel, migrationName))
 

@@ -121,6 +121,9 @@
 
   "StatusStudioOn": "[Studio: AN]",
 
+  "ActionLabelApplied": "angewendet",
+  "ActionLabelRolledBack": "zurückgesetzt",
+
   "LogActionMigrateDeploy": "Migrate Deploy",
   "LogMsgRunningMigrateDeploy": "prisma migrate deploy wird ausgeführt...",
   "LogActionMigrateDeployComplete": "Migrate Deploy abgeschlossen",

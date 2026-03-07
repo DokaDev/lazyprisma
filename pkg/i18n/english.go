@@ -137,6 +137,10 @@ type TranslationSet struct {
 	KeyHintStudio  string
 	KeyHintCopy    string
 
+	// Action Labels
+	ActionLabelApplied    string
+	ActionLabelRolledBack string
+
 	// Log Actions
 	LogActionMigrateDeploy         string
 	LogMsgRunningMigrateDeploy     string
@@ -426,6 +430,10 @@ func EnglishTranslationSet() *TranslationSet {
 		KeyHintResolve:  "resolve",
 		KeyHintStudio:   "tudio",
 		KeyHintCopy:     "opy",
+
+		// Action Labels
+		ActionLabelApplied:    "applied",
+		ActionLabelRolledBack: "rolled back",
 
 		// Log Actions
 		LogActionMigrateDeploy:            "Migrate Deploy",
