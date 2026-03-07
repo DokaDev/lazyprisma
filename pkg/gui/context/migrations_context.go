@@ -581,6 +581,9 @@ func (m *MigrationsContext) loadMigrations() {
 	if err == nil && ds.URL != "" {
 		client, err := database.NewClientFromDSN(ds.Provider, ds.URL)
 		if err == nil {
+			if m.dbClient != nil {
+				m.dbClient.Close()
+			}
 			m.dbClient = client
 			dbMigrations, err = prisma.GetDBMigrations(client.DB())
 			if err == nil {
