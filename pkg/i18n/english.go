@@ -221,7 +221,6 @@ type TranslationSet struct {
 	DetailsEmptyMigrationDescription    string
 	DetailsEmptyMigrationWarning        string
 	DetailsDownMigrationSQLLabel        string
-	DetailsTimestampNA                  string
 	ErrorReadingMigrationSQL            string
 
 	// Details Panel - Action Needed
@@ -510,7 +509,6 @@ func EnglishTranslationSet() *TranslationSet {
 		DetailsEmptyMigrationDescription:     "This migration folder is empty or missing migration.sql.\n",
 		DetailsEmptyMigrationWarning:         "This may cause issues during deployment.",
 		DetailsDownMigrationSQLLabel:         "Down Migration SQL:",
-		DetailsTimestampNA:                   "N/A",
 		ErrorReadingMigrationSQL:             "Error reading migration.sql:\n%v",
 
 		// Details Panel - Action Needed

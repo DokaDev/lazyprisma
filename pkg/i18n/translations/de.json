@@ -201,7 +201,6 @@
   "DetailsEmptyMigrationDescription": "Dieser Migrationsordner ist leer oder migration.sql fehlt.\n",
   "DetailsEmptyMigrationWarning": "Dies kann beim Deployment zu Problemen führen.",
   "DetailsDownMigrationSQLLabel": "Down-Migration SQL:",
-  "DetailsTimestampNA": "N/V",
   "ErrorReadingMigrationSQL": "Fehler beim Lesen von migration.sql:\n%v",
 
   "ActionNeededNoIssuesMessage": "Kein Handlungsbedarf\n\nAlle Migrationen sind in gutem Zustand und das Schema ist gültig.",
