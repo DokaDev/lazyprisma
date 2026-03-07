@@ -39,10 +39,10 @@ func main() {
 	}
 
 	if !prisma.IsWorkspace(cwd) {
-		fmt.Fprintf(os.Stderr, tr.ErrorNotPrismaWorkspace)
-		fmt.Fprintf(os.Stderr, tr.ErrorExpectedOneOf)
-		fmt.Fprintf(os.Stderr, tr.ErrorExpectedConfigV7Plus)
-		fmt.Fprintf(os.Stderr, tr.ErrorExpectedSchemaV7Minus)
+		fmt.Fprint(os.Stderr, tr.ErrorNotPrismaWorkspace)
+		fmt.Fprint(os.Stderr, tr.ErrorExpectedOneOf)
+		fmt.Fprint(os.Stderr, tr.ErrorExpectedConfigV7Plus)
+		fmt.Fprint(os.Stderr, tr.ErrorExpectedSchemaV7Minus)
 		os.Exit(1)
 	}
 
