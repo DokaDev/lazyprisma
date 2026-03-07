@@ -221,7 +221,7 @@ func (d *DetailsContext) buildMigrationDetailContent(migration *prisma.Migration
 		return d.buildFailedMigrationContent(migration)
 	}
 
-	if tabName == "DB-Only" {
+	if tabName == d.tr.TabDBOnly {
 		return d.buildDBOnlyContent(migration)
 	}
 
