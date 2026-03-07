@@ -17,7 +17,7 @@
   "ErrorEnsureDBAccessible": "Bitte stellen Sie sicher, dass Ihre Datenbank läuft und erreichbar ist.",
   "ErrorFailedGetWorkingDir": "Arbeitsverzeichnis konnte nicht ermittelt werden:",
   "ErrorCannotExecuteCommand": "'%s' kann nicht ausgeführt werden",
-  "ErrorCommandCurrentlyRunning": "' wird derzeit ausgeführt'",
+  "ErrorCommandCurrentlyRunning": " — '%s' wird derzeit ausgeführt",
   "ErrorOperationBlocked": "Vorgang blockiert",
 
   "ModalTitleError": "Fehler",

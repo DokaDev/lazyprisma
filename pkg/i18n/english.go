@@ -311,7 +311,7 @@ func EnglishTranslationSet() *TranslationSet {
 		ErrorEnsureDBAccessible:          "Please ensure your database is running and accessible.",
 		ErrorFailedGetWorkingDir:         "Failed to get working directory:",
 		ErrorCannotExecuteCommand:        "Cannot execute '%s'",
-		ErrorCommandCurrentlyRunning:     "' is currently running'",
+		ErrorCommandCurrentlyRunning:     " — '%s' is currently running",
 		ErrorOperationBlocked:            "Operation Blocked",
 
 		// Modal Titles
