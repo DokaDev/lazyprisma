@@ -9,7 +9,7 @@ const (
 	// v7.0+ config file
 	ConfigFileName = "prisma.config.ts"
 
-	// v7.0 이전 schema file
+	// Schema file prior to v7.0
 	SchemaFileName = "schema.prisma"
 	SchemaDirName  = "prisma"
 )

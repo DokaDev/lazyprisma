@@ -88,7 +88,7 @@ func (a *App) Run() error {
 		}
 	}()
 
-	// 초기 포커스
+	// Initial focus
 	if len(a.focusOrder) > 0 {
 		if panel, ok := a.panels[a.focusOrder[0]]; ok {
 			panel.OnFocus()

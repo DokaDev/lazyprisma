@@ -46,7 +46,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// App 생성
+	// Create app
 	tuiApp, err := app.NewApp(app.AppConfig{
 		DebugMode: false,
 		AppName:   "LazyPrisma",
@@ -59,7 +59,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// 패널 생성 및 등록
+	// Create and register panels
 	workspace := context.NewWorkspaceContext(context.WorkspaceContextOpts{
 		Gui:      tuiApp.GetGui(),
 		Tr:       tr,
@@ -112,16 +112,16 @@ func main() {
 	tuiApp.RegisterPanel(output)
 	tuiApp.RegisterPanel(statusbar)
 
-	// 키바인딩 등록
+	// Register keybindings
 	if err := tuiApp.RegisterKeybindings(); err != nil {
 		fmt.Fprintf(os.Stderr, tr.ErrorFailedRegisterKeybindings, err)
 		os.Exit(1)
 	}
 
-	// 마우스 바인딩 등록
+	// Register mouse bindings
 	tuiApp.RegisterMouseBindings()
 
-	// 실행
+	// Run
 	if err := tuiApp.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, tr.ErrorAppRuntime, err)
 		os.Exit(1)

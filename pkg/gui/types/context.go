@@ -64,7 +64,7 @@ type ITabbedContext interface {
 
 	NextTab()
 	PrevTab()
-	GetCurrentTab() int
+	GetCurrentTab() string
 }
 
 // IScrollableContext is a context that supports vertical scrolling.
