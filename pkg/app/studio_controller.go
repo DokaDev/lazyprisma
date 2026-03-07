@@ -94,14 +94,16 @@ func (a *App) Studio() {
 		return
 	}
 
+	// Mark studio as running immediately to prevent double-start
+	a.studioRunning = true
+	a.studioCmd = studioCmd
+
 	// Wait a bit to ensure it started, then finish the "starting" command
 	// The process continues running in background
 	go func() {
 		time.Sleep(2 * time.Second)
 		a.g.Update(func(g *gocui.Gui) error {
 			a.finishCommand() // Finish "starting" command
-			a.studioRunning = true
-			a.studioCmd = studioCmd // Save Command object
 
 			outputPanel.LogAction(a.Tr.LogActionStudioStarted, a.Tr.LogMsgStudioListeningAt)
 			outputPanel.SetSubtitle(a.Tr.LogMsgStudioListeningAt)
