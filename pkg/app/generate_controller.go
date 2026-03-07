@@ -102,7 +102,7 @@ func (a *App) Generate() {
 										a.OpenModal(modal)
 									} else {
 										// Schema is valid but generate failed for other reasons
-										out.LogAction(a.Tr.LogActionGenerateFailed, fmt.Sprintf(a.Tr.LogMsgFoundSchemaErrors, exitCode))
+										out.LogAction(a.Tr.LogActionGenerateFailed, fmt.Sprintf(a.Tr.ModalMsgGenerateFailedWithCode, exitCode))
 										modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleGenerateFailed,
 											fmt.Sprintf(a.Tr.ModalMsgGenerateFailedWithCode, exitCode),
 											a.Tr.ModalMsgSchemaValidCheckOutput,
