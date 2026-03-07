@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/dokadev/lazyprisma/pkg/database"
+	"github.com/dokadev/lazyprisma/pkg/i18n"
 	"github.com/dokadev/lazyprisma/pkg/prisma"
 	"github.com/jesseduffield/gocui"
 	"github.com/jesseduffield/lazycore/pkg/boxlayout"
@@ -30,17 +31,21 @@ type MigrationsPanel struct {
 	// Details panel reference
 	detailsPanel *DetailsPanel
 
+	// Translation set (available from construction time)
+	tr *i18n.TranslationSet
+
 	// App reference for modal check
 	app *App
 }
 
-func NewMigrationsPanel(g *gocui.Gui) *MigrationsPanel {
+func NewMigrationsPanel(g *gocui.Gui, tr *i18n.TranslationSet) *MigrationsPanel {
 	panel := &MigrationsPanel{
 		BasePanel:   NewBasePanel(ViewMigrations, g),
 		items:       []string{},
 		tabs:        []string{},
 		tabIndex:    0,
 		selected:    0,
+		tr:          tr,
 		tabSelected: make(map[string]int),
 		tabOriginY:  make(map[string]int),
 	}
@@ -51,16 +56,16 @@ func NewMigrationsPanel(g *gocui.Gui) *MigrationsPanel {
 func (m *MigrationsPanel) loadMigrations() {
 	cwd, err := os.Getwd()
 	if err != nil {
-		m.items = []string{"Error: Failed to get working directory"}
-		m.tabs = []string{"Local"}
+		m.items = []string{m.tr.ErrorFailedGetWorkingDirectory}
+		m.tabs = []string{m.tr.TabLocal}
 		return
 	}
 
 	// Get local migrations
 	localMigrations, err := prisma.GetLocalMigrations(cwd)
 	if err != nil {
-		m.items = []string{fmt.Sprintf("Error loading local migrations: %v", err)}
-		m.tabs = []string{"Local"}
+		m.items = []string{fmt.Sprintf(m.tr.ErrorLoadingLocalMigrations, err)}
+		m.tabs = []string{m.tr.TabLocal}
 		return
 	}
 
@@ -96,12 +101,12 @@ func (m *MigrationsPanel) loadMigrations() {
 		m.category = prisma.CompareMigrations(localMigrations, dbMigrations)
 
 		// Build tabs based on available data
-		m.tabs = []string{"Local"}
+		m.tabs = []string{m.tr.TabLocal}
 		if len(m.category.Pending) > 0 {
-			m.tabs = append(m.tabs, "Pending")
+			m.tabs = append(m.tabs, m.tr.TabPending)
 		}
 		if len(m.category.DBOnly) > 0 {
-			m.tabs = append(m.tabs, "DB-Only")
+			m.tabs = append(m.tabs, m.tr.TabDBOnly)
 		}
 
 		// Store table existence info for display
@@ -113,7 +118,7 @@ func (m *MigrationsPanel) loadMigrations() {
 			Pending: []prisma.Migration{},
 			DBOnly:  []prisma.Migration{},
 		}
-		m.tabs = []string{"Local"}
+		m.tabs = []string{m.tr.TabLocal}
 		m.tableExists = false
 	}
 
@@ -132,16 +137,16 @@ func (m *MigrationsPanel) loadItemsForCurrentTab() {
 	var migrations []prisma.Migration
 
 	switch tabName {
-	case "Local":
+	case m.tr.TabLocal:
 		migrations = m.category.Local
-	case "Pending":
+	case m.tr.TabPending:
 		migrations = m.category.Pending
-	case "DB-Only":
+	case m.tr.TabDBOnly:
 		migrations = m.category.DBOnly
 	}
 
 	if len(migrations) == 0 {
-		m.items = []string{"No migrations found"}
+		m.items = []string{m.tr.ErrorNoMigrationsFound}
 		return
 	}
 
@@ -275,12 +280,12 @@ func (m *MigrationsPanel) Draw(dim boxlayout.Dimensions) error {
 // buildFooter builds the footer text (selection info in "n of n" format)
 func (m *MigrationsPanel) buildFooter() string {
 	// Don't show footer if no valid items
-	if len(m.items) == 0 || (len(m.items) == 1 && m.items[0] == "No migrations found") {
+	if len(m.items) == 0 || (len(m.items) == 1 && m.items[0] == m.tr.ErrorNoMigrationsFound) {
 		return ""
 	}
 
 	// Show selection info: "2 of 5"
-	return fmt.Sprintf("%d of %d", m.selected+1, len(m.items))
+	return fmt.Sprintf(m.tr.MigrationsFooterFormat, m.selected+1, len(m.items))
 }
 
 func (m *MigrationsPanel) SelectNext() {
@@ -439,11 +444,11 @@ func (m *MigrationsPanel) GetSelectedMigration() *prisma.Migration {
 	var migrations []prisma.Migration
 
 	switch tabName {
-	case "Local":
+	case m.tr.TabLocal:
 		migrations = m.category.Local
-	case "Pending":
+	case m.tr.TabPending:
 		migrations = m.category.Pending
-	case "DB-Only":
+	case m.tr.TabDBOnly:
 		migrations = m.category.DBOnly
 	}
 

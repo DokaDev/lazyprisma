@@ -4,21 +4,24 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/dokadev/lazyprisma/pkg/i18n"
 	"github.com/jesseduffield/gocui"
 	"github.com/jesseduffield/lazycore/pkg/boxlayout"
 )
 
 type OutputPanel struct {
 	BasePanel
+	tr                   *i18n.TranslationSet
 	content              string
 	subtitle             string // Custom subtitle
 	originY              int    // Scroll position
 	autoScrollToBottom   bool   // Auto-scroll to bottom on next draw
 }
 
-func NewOutputPanel(g *gocui.Gui) *OutputPanel {
+func NewOutputPanel(g *gocui.Gui, tr *i18n.TranslationSet) *OutputPanel {
 	return &OutputPanel{
 		BasePanel: NewBasePanel(ViewOutputs, g),
+		tr:        tr,
 		content:   "", // Start with empty output
 	}
 }
@@ -29,7 +32,7 @@ func (o *OutputPanel) Draw(dim boxlayout.Dimensions) error {
 		return err
 	}
 
-	o.SetupView(v, "Output")
+	o.SetupView(v, o.tr.PanelTitleOutput)
 	o.v = v
 	v.Subtitle = o.subtitle // Set subtitle
 	v.Wrap = true           // Enable word wrap

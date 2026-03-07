@@ -3,6 +3,7 @@ package app
 import (
 	"strings"
 
+	"github.com/dokadev/lazyprisma/pkg/i18n"
 	"github.com/jesseduffield/gocui"
 	"github.com/jesseduffield/lazycore/pkg/boxlayout"
 )
@@ -10,6 +11,7 @@ import (
 // InputModal displays an input field for user text entry
 type InputModal struct {
 	g                *gocui.Gui
+	tr               *i18n.TranslationSet
 	title            string // Used as placeholder
 	subtitle         string // Optional subtitle
 	footer           string // Key bindings description
@@ -23,11 +25,12 @@ type InputModal struct {
 }
 
 // NewInputModal creates a new input modal
-func NewInputModal(g *gocui.Gui, title string, onSubmit func(string), onCancel func()) *InputModal {
+func NewInputModal(g *gocui.Gui, tr *i18n.TranslationSet, title string, onSubmit func(string), onCancel func()) *InputModal {
 	return &InputModal{
 		g:        g,
+		tr:       tr,
 		title:    title,
-		footer:   " [Enter] Submit [ESC] Cancel ",
+		footer:   tr.ModalFooterInputSubmitCancel,
 		style:    MessageModalStyle{}, // Default style
 		onSubmit: onSubmit,
 		onCancel: onCancel,
@@ -156,7 +159,7 @@ func (m *InputModal) HandleKey(key any, mod gocui.Modifier) error {
 		// Validate if required
 		if m.required && input == "" {
 			if m.onValidationFail != nil {
-				m.onValidationFail("Input is required")
+				m.onValidationFail(m.tr.ModalMsgInputRequired)
 			}
 			return nil // Don't submit
 		}

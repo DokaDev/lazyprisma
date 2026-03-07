@@ -10,6 +10,7 @@ import (
 	"github.com/alecthomas/chroma/v2/formatters"
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
+	"github.com/dokadev/lazyprisma/pkg/i18n"
 	"github.com/dokadev/lazyprisma/pkg/prisma"
 	"github.com/jesseduffield/gocui"
 	"github.com/jesseduffield/lazycore/pkg/boxlayout"
@@ -29,15 +30,19 @@ type DetailsPanel struct {
 	validationResult        *prisma.ValidateResult  // Schema validation result
 	tabOriginY              map[string]int          // Scroll position per tab
 
+	// Translation set (available from construction time)
+	tr *i18n.TranslationSet
+
 	// App reference for modal check (tab click events)
 	app *App
 }
 
-func NewDetailsPanel(g *gocui.Gui) *DetailsPanel {
+func NewDetailsPanel(g *gocui.Gui, tr *i18n.TranslationSet) *DetailsPanel {
 	return &DetailsPanel{
 		BasePanel:              NewBasePanel(ViewDetails, g),
-		content:                "Details\n\nSelect a migration to view details...",
-		tabs:                   []string{"Details"}, // Start with Details tab only
+		tr:                     tr,
+		content:                tr.DetailsPanelInitialPlaceholder,
+		tabs:                   []string{tr.TabDetails},
 		tabIndex:               0,
 		actionNeededMigrations: []prisma.Migration{},
 		tabOriginY:             make(map[string]int),
@@ -83,7 +88,7 @@ func (d *DetailsPanel) Draw(dim boxlayout.Dimensions) error {
 	// Render content based on current tab
 	if d.tabIndex < len(d.tabs) {
 		tabName := d.tabs[d.tabIndex]
-		if tabName == "Action-Needed" {
+		if d.app != nil && tabName == d.tr.TabActionNeeded {
 			fmt.Fprint(v, d.buildActionNeededContent())
 		} else {
 			fmt.Fprint(v, d.content)
@@ -131,75 +136,73 @@ func (d *DetailsPanel) buildActionNeededContent() string {
 	totalCount := emptyCount + mismatchCount + validationErrorCount
 
 	if totalCount == 0 {
-		return "No action required\n\nAll migrations are in good state and schema is valid."
+		return d.tr.ActionNeededNoIssuesMessage
 	}
 
 	var content strings.Builder
 
 	// Header
-	content.WriteString(fmt.Sprintf("%s (%d issue", Yellow("⚠ Action Needed"), totalCount))
+	content.WriteString(fmt.Sprintf("%s (%d%s", Yellow(d.tr.ActionNeededHeader), totalCount, d.tr.ActionNeededIssueSingular))
 	if totalCount > 1 {
-		content.WriteString("s")
+		content.WriteString(d.tr.ActionNeededIssuePlural)
 	}
 	content.WriteString(")\n\n")
 
 	// Empty Migrations Section
 	if emptyCount > 0 {
 		content.WriteString(strings.Repeat("━", 40) + "\n")
-		content.WriteString(fmt.Sprintf("%s (%d)\n", Red("Empty Migrations"), emptyCount))
+		content.WriteString(fmt.Sprintf("%s (%d)\n", Red(d.tr.ActionNeededEmptyMigrationsHeader), emptyCount))
 		content.WriteString(strings.Repeat("━", 40) + "\n\n")
 
-		content.WriteString("These migrations have no SQL content.\n\n")
+		content.WriteString(d.tr.ActionNeededEmptyDescription)
 
-		content.WriteString("Affected:\n")
+		content.WriteString(d.tr.ActionNeededAffectedLabel)
 		for _, mig := range emptyMigrations {
 			_, name := parseMigrationName(mig.Name)
 			content.WriteString(fmt.Sprintf("  • %s\n", Red(name)))
 		}
 
-		content.WriteString("\nRecommended Actions:\n")
-		content.WriteString("  → Add migration.sql manually\n")
-		content.WriteString("  → Delete empty migration folders\n")
-		content.WriteString("  → Mark as baseline migration\n\n")
+		content.WriteString("\n" + d.tr.ActionNeededRecommendedLabel)
+		content.WriteString(d.tr.ActionNeededAddMigrationSQL)
+		content.WriteString(d.tr.ActionNeededDeleteEmptyFolders)
+		content.WriteString(d.tr.ActionNeededMarkAsBaseline)
 	}
 
 	// Checksum Mismatch Section
 	if mismatchCount > 0 {
 		content.WriteString(strings.Repeat("━", 40) + "\n")
-		content.WriteString(fmt.Sprintf("%s (%d)\n", Orange("Checksum Mismatch"), mismatchCount))
+		content.WriteString(fmt.Sprintf("%s (%d)\n", Orange(d.tr.ActionNeededChecksumMismatchHeader), mismatchCount))
 		content.WriteString(strings.Repeat("━", 40) + "\n\n")
 
-		content.WriteString("Migration content was modified after\n")
-		content.WriteString("being applied to database.\n\n")
+		content.WriteString(d.tr.ActionNeededChecksumModifiedDescription)
 
-		content.WriteString(Yellow("⚠ WARNING: "))
-		content.WriteString("Editing applied migrations\n")
-		content.WriteString("can cause inconsistencies.\n\n")
+		content.WriteString(Yellow(d.tr.ActionNeededWarningPrefix))
+		content.WriteString(d.tr.ActionNeededEditingInconsistenciesWarning)
 
-		content.WriteString("Affected:\n")
+		content.WriteString(d.tr.ActionNeededAffectedLabel)
 		for _, mig := range mismatchMigrations {
 			_, name := parseMigrationName(mig.Name)
 			content.WriteString(fmt.Sprintf("  • %s\n", Orange(name)))
 		}
 
-		content.WriteString("\nRecommended Actions:\n")
-		content.WriteString("  → Revert local changes\n")
-		content.WriteString("  → Create new migration instead\n")
-		content.WriteString("  → Contact team if needed\n\n")
+		content.WriteString("\n" + d.tr.ActionNeededRecommendedLabel)
+		content.WriteString(d.tr.ActionNeededRevertLocalChanges)
+		content.WriteString(d.tr.ActionNeededCreateNewInstead)
+		content.WriteString(d.tr.ActionNeededContactTeamIfNeeded)
 	}
 
 	// Schema Validation Section
 	if validationErrorCount > 0 {
 		content.WriteString(strings.Repeat("━", 40) + "\n")
-		content.WriteString(fmt.Sprintf("%s (%d)\n", Red("Schema Validation Errors"), validationErrorCount))
+		content.WriteString(fmt.Sprintf("%s (%d)\n", Red(d.tr.ActionNeededSchemaValidationErrorsHeader), validationErrorCount))
 		content.WriteString(strings.Repeat("━", 40) + "\n\n")
 
-		content.WriteString("Schema validation failed.\n")
-		content.WriteString("Fix these issues before running migrations.\n\n")
+		content.WriteString(d.tr.ActionNeededSchemaValidationFailedDesc)
+		content.WriteString(d.tr.ActionNeededFixBeforeMigration)
 
 		// Show full validation output (contains detailed error info)
 		if d.validationResult.Output != "" {
-			content.WriteString(Stylize("Validation Output:", Style{FgColor: ColorYellow, Bold: true}) + "\n")
+			content.WriteString(Stylize(d.tr.ActionNeededValidationOutputLabel, Style{FgColor: ColorYellow, Bold: true}) + "\n")
 			// Display the full output with proper formatting (preserve all line breaks)
 			outputLines := strings.Split(d.validationResult.Output, "\n")
 			for _, line := range outputLines {
@@ -216,10 +219,10 @@ func (d *DetailsPanel) buildActionNeededContent() string {
 			content.WriteString("\n")
 		}
 
-		content.WriteString(Stylize("Recommended Actions:", Style{FgColor: ColorYellow, Bold: true}) + "\n")
-		content.WriteString("  → Fix schema.prisma errors\n")
-		content.WriteString("  → Check line numbers in output above\n")
-		content.WriteString("  → Refer to Prisma documentation\n")
+		content.WriteString(Stylize(d.tr.ActionNeededRecommendedActionsLabel, Style{FgColor: ColorYellow, Bold: true}) + "\n")
+		content.WriteString(d.tr.ActionNeededFixSchemaErrors)
+		content.WriteString(d.tr.ActionNeededCheckLineNumbers)
+		content.WriteString(d.tr.ActionNeededReferPrismaDocumentation)
 	}
 
 	return content.String()
@@ -352,24 +355,24 @@ func (d *DetailsPanel) UpdateFromMigration(migration *prisma.Migration, tabName 
 	// Only reset scroll position for Details tab if viewing a different migration
 	if migration != nil && d.currentMigrationName != migration.Name {
 		// Reset Details tab scroll position only
-		d.tabOriginY["Details"] = 0
+		d.tabOriginY[d.tr.TabDetails] = 0
 		// If currently on Details tab, also update originY
-		if d.tabIndex < len(d.tabs) && d.tabs[d.tabIndex] == "Details" {
+		if d.tabIndex < len(d.tabs) && d.tabs[d.tabIndex] == d.tr.TabDetails {
 			d.originY = 0
 		}
 		d.currentMigrationName = migration.Name
 	} else if migration == nil {
 		// Reset Details tab scroll position only
-		d.tabOriginY["Details"] = 0
+		d.tabOriginY[d.tr.TabDetails] = 0
 		// If currently on Details tab, also update originY
-		if d.tabIndex < len(d.tabs) && d.tabs[d.tabIndex] == "Details" {
+		if d.tabIndex < len(d.tabs) && d.tabs[d.tabIndex] == d.tr.TabDetails {
 			d.originY = 0
 		}
 		d.currentMigrationName = ""
 	}
 
 	if migration == nil {
-		d.content = "Details\n\nSelect a migration to view details..."
+		d.content = d.tr.DetailsPanelInitialPlaceholder
 		return
 	}
 
@@ -378,32 +381,32 @@ func (d *DetailsPanel) UpdateFromMigration(migration *prisma.Migration, tabName 
 	// In-Transaction migrations (highest priority)
 	if migration.IsFailed {
 		timestamp, name := parseMigrationName(migration.Name)
-		header := fmt.Sprintf("Name: %s\n", Cyan(name))
-		header += fmt.Sprintf("Timestamp: %s\n", timestamp)
+		header := fmt.Sprintf(d.tr.DetailsNameLabel, Cyan(name))
+		header += fmt.Sprintf(d.tr.DetailsTimestampLabel, timestamp)
 		if migration.Path != "" {
-			header += fmt.Sprintf("Path: %s\n", getRelativePath(migration.Path))
+			header += fmt.Sprintf(d.tr.DetailsPathLabel, getRelativePath(migration.Path))
 		}
-		header += fmt.Sprintf("Status: %s\n", Cyan("⚠ In-Transaction"))
+		header += fmt.Sprintf(d.tr.DetailsStatusLabel+"%s\n", Cyan(d.tr.MigrationStatusInTransaction))
 
 		// Show down migration availability
 		if migration.HasDownSQL {
-			header += fmt.Sprintf("Down Migration: %s\n", Green("✓ Available"))
+			header += fmt.Sprintf(d.tr.DetailsDownMigrationLabel+"%s\n", Green(d.tr.DetailsDownMigrationAvailable))
 		} else {
-			header += fmt.Sprintf("Down Migration: %s\n", Red("✗ Not available"))
+			header += fmt.Sprintf(d.tr.DetailsDownMigrationLabel+"%s\n", Red(d.tr.DetailsDownMigrationNotAvailable))
 		}
 
 		// Show started_at if available
 		if migration.StartedAt != nil {
-			header += fmt.Sprintf("Started At: %s\n", migration.StartedAt.Format("2006-01-02 15:04:05"))
+			header += fmt.Sprintf(d.tr.DetailsStartedAtLabel+"%s\n", migration.StartedAt.Format("2006-01-02 15:04:05"))
 		}
 
-		header += "\n" + Yellow("⚠ WARNING: This migration is stuck in an incomplete state.")
-		header += "\n" + Yellow("No additional migrations can be applied until this is resolved.")
-		header += "\n\nPlease resolve this migration manually before proceeding.\n"
+		header += "\n" + Yellow(d.tr.DetailsInTransactionWarning)
+		header += "\n" + Yellow(d.tr.DetailsNoAdditionalMigrationsWarning)
+		header += "\n\n" + d.tr.DetailsResolveManuallyInstruction
 
 		// Show logs if available
 		if migration.Logs != nil && *migration.Logs != "" {
-			header += "\nError Logs:\n" + Red(*migration.Logs)
+			header += "\n" + d.tr.DetailsErrorLogsLabel + "\n" + Red(*migration.Logs)
 		}
 
 		// Read and show migration.sql content (if Path is available - not DB-Only)
@@ -420,7 +423,7 @@ func (d *DetailsPanel) UpdateFromMigration(migration *prisma.Migration, tabName 
 					downContent, err := os.ReadFile(downSQLPath)
 					if err == nil {
 						highlightedDownSQL := highlightSQL(string(downContent))
-						d.content += "\n\n" + Yellow("Down Migration SQL:") + "\n\n" + highlightedDownSQL
+						d.content += "\n\n" + Yellow(d.tr.DetailsDownMigrationSQLLabel) + "\n\n" + highlightedDownSQL
 					}
 				}
 			} else {
@@ -434,10 +437,10 @@ func (d *DetailsPanel) UpdateFromMigration(migration *prisma.Migration, tabName 
 
 	if tabName == "DB-Only" {
 		timestamp, name := parseMigrationName(migration.Name)
-		header := fmt.Sprintf("Name: %s\n", Yellow(name))
-		header += fmt.Sprintf("Timestamp: %s\n", timestamp)
-		header += fmt.Sprintf("Status: %s\n\n", Red("✗ DB Only"))
-		header += "This migration exists in the database but not in local files."
+		header := fmt.Sprintf(d.tr.DetailsNameLabel, Yellow(name))
+		header += fmt.Sprintf(d.tr.DetailsTimestampLabel, timestamp)
+		header += fmt.Sprintf(d.tr.DetailsStatusLabel+"%s\n\n", Red(d.tr.MigrationStatusDBOnly))
+		header += d.tr.DetailsDBOnlyDescription
 		d.content = header
 		return
 	}
@@ -445,32 +448,32 @@ func (d *DetailsPanel) UpdateFromMigration(migration *prisma.Migration, tabName 
 	// Checksum mismatch
 	if migration.ChecksumMismatch {
 		timestamp, name := parseMigrationName(migration.Name)
-		header := fmt.Sprintf("Name: %s\n", Orange(name))
-		header += fmt.Sprintf("Timestamp: %s\n", timestamp)
+		header := fmt.Sprintf(d.tr.DetailsNameLabel, Orange(name))
+		header += fmt.Sprintf(d.tr.DetailsTimestampLabel, timestamp)
 		if migration.Path != "" {
-			header += fmt.Sprintf("Path: %s\n", getRelativePath(migration.Path))
+			header += fmt.Sprintf(d.tr.DetailsPathLabel, getRelativePath(migration.Path))
 		}
 		// Show Applied status with Checksum Mismatch warning
-		statusLine := fmt.Sprintf("Status: %s", Green("✓ Applied"))
+		statusLine := fmt.Sprintf(d.tr.DetailsStatusLabel+"%s", Green(d.tr.MigrationStatusApplied))
 		if migration.AppliedAt != nil {
-			statusLine += fmt.Sprintf(" (Applied at: %s)", migration.AppliedAt.Format("2006-01-02 15:04:05"))
+			statusLine += fmt.Sprintf(" (%s)", fmt.Sprintf(d.tr.DetailsAppliedAtLabel, migration.AppliedAt.Format("2006-01-02 15:04:05")))
 		}
-		statusLine += fmt.Sprintf(" - %s\n", Orange("⚠ Checksum Mismatch"))
+		statusLine += fmt.Sprintf(" - %s\n", Orange(d.tr.MigrationStatusChecksumMismatch))
 		header += statusLine
 
 		// Show down migration availability
 		if migration.HasDownSQL {
-			header += fmt.Sprintf("Down Migration: %s\n", Green("✓ Available"))
+			header += fmt.Sprintf(d.tr.DetailsDownMigrationLabel+"%s\n", Green(d.tr.DetailsDownMigrationAvailable))
 		} else {
-			header += fmt.Sprintf("Down Migration: %s\n", Red("✗ Not available"))
+			header += fmt.Sprintf(d.tr.DetailsDownMigrationLabel+"%s\n", Red(d.tr.DetailsDownMigrationNotAvailable))
 		}
 
-		header += "\nThe local migration file has been modified after being applied to the database.\n"
-		header += "This can cause issues during deployment.\n\n"
+		header += "\n" + d.tr.DetailsChecksumModifiedDescription
+		header += d.tr.DetailsChecksumIssuesWarning
 
 		// Show checksum values (in orange for emphasis)
-		header += fmt.Sprintf("Local Checksum:   %s\n", Orange(migration.Checksum))
-		header += fmt.Sprintf("History Checksum: %s\n", Orange(migration.DBChecksum))
+		header += fmt.Sprintf(d.tr.DetailsLocalChecksumLabel+"%s\n", Orange(migration.Checksum))
+		header += fmt.Sprintf(d.tr.DetailsHistoryChecksumLabel+"%s\n", Orange(migration.DBChecksum))
 
 		// Read and show migration.sql content
 		sqlPath := filepath.Join(migration.Path, "migration.sql")
@@ -485,7 +488,7 @@ func (d *DetailsPanel) UpdateFromMigration(migration *prisma.Migration, tabName 
 				downContent, err := os.ReadFile(downSQLPath)
 				if err == nil {
 					highlightedDownSQL := highlightSQL(string(downContent))
-					d.content += "\n\n" + Yellow("Down Migration SQL:") + "\n\n" + highlightedDownSQL
+					d.content += "\n\n" + Yellow(d.tr.DetailsDownMigrationSQLLabel) + "\n\n" + highlightedDownSQL
 				}
 			}
 		} else {
@@ -496,22 +499,22 @@ func (d *DetailsPanel) UpdateFromMigration(migration *prisma.Migration, tabName 
 
 	if migration.IsEmpty {
 		timestamp, name := parseMigrationName(migration.Name)
-		header := fmt.Sprintf("Name: %s\n", Magenta(name))
-		header += fmt.Sprintf("Timestamp: %s\n", timestamp)
+		header := fmt.Sprintf(d.tr.DetailsNameLabel, Magenta(name))
+		header += fmt.Sprintf(d.tr.DetailsTimestampLabel, timestamp)
 		if migration.Path != "" {
-			header += fmt.Sprintf("Path: %s\n", getRelativePath(migration.Path))
+			header += fmt.Sprintf(d.tr.DetailsPathLabel, getRelativePath(migration.Path))
 		}
-		header += fmt.Sprintf("Status: %s\n", Red("⚠ Empty Migration"))
+		header += fmt.Sprintf(d.tr.DetailsStatusLabel+"%s\n", Red(d.tr.MigrationStatusEmptyMigration))
 
 		// Show down migration availability (even for empty migrations)
 		if migration.HasDownSQL {
-			header += fmt.Sprintf("Down Migration: %s\n", Green("✓ Available"))
+			header += fmt.Sprintf(d.tr.DetailsDownMigrationLabel+"%s\n", Green(d.tr.DetailsDownMigrationAvailable))
 		} else {
-			header += fmt.Sprintf("Down Migration: %s\n", Red("✗ Not available"))
+			header += fmt.Sprintf(d.tr.DetailsDownMigrationLabel+"%s\n", Red(d.tr.DetailsDownMigrationNotAvailable))
 		}
 
-		header += "\nThis migration folder is empty or missing migration.sql.\n"
-		header += "This may cause issues during deployment."
+		header += "\n" + d.tr.DetailsEmptyMigrationDescription
+		header += d.tr.DetailsEmptyMigrationWarning
 		d.content = header
 		return
 	}
@@ -521,8 +524,9 @@ func (d *DetailsPanel) UpdateFromMigration(migration *prisma.Migration, tabName 
 	content, err := os.ReadFile(sqlPath)
 	if err != nil {
 		timestamp, name := parseMigrationName(migration.Name)
-		d.content = fmt.Sprintf("Name: %s\nTimestamp: %s\n\nError reading migration.sql:\n%v",
-			name, timestamp, err)
+		d.content = fmt.Sprintf(d.tr.DetailsNameLabel, name) +
+			fmt.Sprintf(d.tr.DetailsTimestampLabel, timestamp) +
+			"\n" + fmt.Sprintf(d.tr.ErrorReadingMigrationSQL, err)
 		return
 	}
 
@@ -530,28 +534,28 @@ func (d *DetailsPanel) UpdateFromMigration(migration *prisma.Migration, tabName 
 	timestamp, name := parseMigrationName(migration.Name)
 	var header string
 	if migration.AppliedAt != nil {
-		header = fmt.Sprintf("Name: %s\n", Green(name))
-		header += fmt.Sprintf("Timestamp: %s\n", timestamp)
+		header = fmt.Sprintf(d.tr.DetailsNameLabel, Green(name))
+		header += fmt.Sprintf(d.tr.DetailsTimestampLabel, timestamp)
 		if migration.Path != "" {
-			header += fmt.Sprintf("Path: %s\n", getRelativePath(migration.Path))
+			header += fmt.Sprintf(d.tr.DetailsPathLabel, getRelativePath(migration.Path))
 		}
-		header += fmt.Sprintf("Status: %s (Applied at: %s)\n",
-			Green("✓ Applied"),
-			migration.AppliedAt.Format("2006-01-02 15:04:05"))
+		header += fmt.Sprintf(d.tr.DetailsStatusLabel+"%s (%s)\n",
+			Green(d.tr.MigrationStatusApplied),
+			fmt.Sprintf(d.tr.DetailsAppliedAtLabel, migration.AppliedAt.Format("2006-01-02 15:04:05")))
 	} else {
-		header = fmt.Sprintf("Name: %s\n", Yellow(name))
-		header += fmt.Sprintf("Timestamp: %s\n", timestamp)
+		header = fmt.Sprintf(d.tr.DetailsNameLabel, Yellow(name))
+		header += fmt.Sprintf(d.tr.DetailsTimestampLabel, timestamp)
 		if migration.Path != "" {
-			header += fmt.Sprintf("Path: %s\n", getRelativePath(migration.Path))
+			header += fmt.Sprintf(d.tr.DetailsPathLabel, getRelativePath(migration.Path))
 		}
-		header += fmt.Sprintf("Status: %s\n", Yellow("⚠ Pending"))
+		header += fmt.Sprintf(d.tr.DetailsStatusLabel+"%s\n", Yellow(d.tr.MigrationStatusPending))
 	}
 
 	// Show down migration availability
 	if migration.HasDownSQL {
-		header += fmt.Sprintf("Down Migration: %s\n", Green("✓ Available"))
+		header += fmt.Sprintf(d.tr.DetailsDownMigrationLabel+"%s\n", Green(d.tr.DetailsDownMigrationAvailable))
 	} else {
-		header += fmt.Sprintf("Down Migration: %s\n", Red("✗ Not available"))
+		header += fmt.Sprintf(d.tr.DetailsDownMigrationLabel+"%s\n", Red(d.tr.DetailsDownMigrationNotAvailable))
 	}
 
 	// Apply syntax highlighting to SQL content
@@ -565,7 +569,7 @@ func (d *DetailsPanel) UpdateFromMigration(migration *prisma.Migration, tabName 
 		downContent, err := os.ReadFile(downSQLPath)
 		if err == nil {
 			highlightedDownSQL := highlightSQL(string(downContent))
-			d.content += "\n\n" + Yellow("Down Migration SQL:") + "\n\n" + highlightedDownSQL
+			d.content += "\n\n" + Yellow(d.tr.DetailsDownMigrationSQLLabel) + "\n\n" + highlightedDownSQL
 		}
 	}
 }
@@ -653,14 +657,14 @@ func (d *DetailsPanel) LoadActionNeededData() {
 // updateTabs rebuilds the tabs list based on available data
 func (d *DetailsPanel) updateTabs() {
 	// Always have Details tab
-	d.tabs = []string{"Details"}
+	d.tabs = []string{d.tr.TabDetails}
 
 	// Add Action-Needed tab if there are migration issues or validation errors
 	hasIssues := len(d.actionNeededMigrations) > 0
 	hasValidationErrors := d.validationResult != nil && !d.validationResult.Valid
 
 	if hasIssues || hasValidationErrors {
-		d.tabs = append(d.tabs, "Action-Needed")
+		d.tabs = append(d.tabs, d.tr.TabActionNeeded)
 	}
 
 	// Reset tab index if current tab no longer exists

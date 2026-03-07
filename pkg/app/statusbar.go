@@ -60,7 +60,7 @@ func (s *StatusBar) Draw(dim boxlayout.Dimensions) error {
 
 	// Show Studio status if running
 	if s.app.studioRunning {
-		studioMsg := "[Studio: ON]"
+		studioMsg := s.app.Tr.StatusStudioOn
 		leftContent += fmt.Sprintf("%s ", Green(studioMsg))
 		visibleLen += len(studioMsg) + 1
 	}
@@ -77,13 +77,13 @@ func (s *StatusBar) Draw(dim boxlayout.Dimensions) error {
 		visibleLen += vLen + 1
 	}
 
-	appendKey("r", "efresh")
-	appendKey("d", "ev")
-	appendKey("D", "eploy")
-	appendKey("g", "enerate")
-	appendKey("s", "resolve")
-	appendKey("S", "tudio")
-	appendKey("c", "opy")
+	appendKey("r", s.app.Tr.KeyHintRefresh)
+	appendKey("d", s.app.Tr.KeyHintDev)
+	appendKey("D", s.app.Tr.KeyHintDeploy)
+	appendKey("g", s.app.Tr.KeyHintGenerate)
+	appendKey("s", s.app.Tr.KeyHintResolve)
+	appendKey("S", s.app.Tr.KeyHintStudio)
+	appendKey("c", s.app.Tr.KeyHintCopy)
 
 	// Right content (Metadata)
 	// Style right content (e.g., in blue or default)

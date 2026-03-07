@@ -14,7 +14,7 @@ func (a *App) TestModal() {
 	// Get current working directory
 	cwd, err := os.Getwd()
 	if err != nil {
-		modal := NewMessageModal(a.g, "Error",
+		modal := NewMessageModal(a.g, a.Tr,"Error",
 			"Failed to get working directory:",
 			err.Error(),
 		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
@@ -25,7 +25,7 @@ func (a *App) TestModal() {
 	// Run validation
 	result, err := prisma.Validate(cwd)
 	if err != nil {
-		modal := NewMessageModal(a.g, "Validation Error",
+		modal := NewMessageModal(a.g, a.Tr,"Validation Error",
 			"Failed to run validation:",
 			err.Error(),
 		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
@@ -36,7 +36,7 @@ func (a *App) TestModal() {
 	// Show result
 	if result.Valid {
 		// Validation passed
-		modal := NewMessageModal(a.g, "Schema Validation Passed",
+		modal := NewMessageModal(a.g, a.Tr,"Schema Validation Passed",
 			"Your Prisma schema is valid!",
 		).WithStyle(MessageModalStyle{TitleColor: ColorCyan, BorderColor: ColorCyan})
 		a.OpenModal(modal)
@@ -53,7 +53,7 @@ func (a *App) TestModal() {
 			lines = append(lines, styledOutput)
 		}
 
-		modal := NewMessageModal(a.g, "Schema Validation Failed", lines...).
+		modal := NewMessageModal(a.g, a.Tr,"Schema Validation Failed", lines...).
 			WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 		a.OpenModal(modal)
 	}
@@ -61,13 +61,13 @@ func (a *App) TestModal() {
 
 // TestInputModal opens a test input modal (temporary for testing)
 func (a *App) TestInputModal() {
-	modal := NewInputModal(a.g, "Enter migration name",
+	modal := NewInputModal(a.g, a.Tr,"Enter migration name",
 		func(input string) {
 			// Close input modal
 			a.CloseModal()
 
 			// Show result in message modal
-			resultModal := NewMessageModal(a.g, "Input Received",
+			resultModal := NewMessageModal(a.g, a.Tr,"Input Received",
 				"You entered:",
 				input,
 			).WithStyle(MessageModalStyle{TitleColor: ColorGreen, BorderColor: ColorGreen})
@@ -83,7 +83,7 @@ func (a *App) TestInputModal() {
 			// Close input modal and show error modal
 			a.CloseModal()
 
-			errorModal := NewMessageModal(a.g, "Validation Failed",
+			errorModal := NewMessageModal(a.g, a.Tr,"Validation Failed",
 				reason,
 			).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 			a.OpenModal(errorModal)
@@ -100,7 +100,7 @@ func (a *App) TestListModal() {
 			Description: "Create a new migration file.\n\nThis will:\n• Generate a new migration file in prisma/migrations\n• Include timestamp in the filename\n• Prompt for migration name",
 			OnSelect: func() error {
 				a.CloseModal()
-				resultModal := NewMessageModal(a.g, "Action Selected",
+				resultModal := NewMessageModal(a.g, a.Tr,"Action Selected",
 					"You selected: Create Migration",
 				).WithStyle(MessageModalStyle{TitleColor: ColorGreen, BorderColor: ColorGreen})
 				a.OpenModal(resultModal)
@@ -112,7 +112,7 @@ func (a *App) TestListModal() {
 			Description: "Apply pending migrations to the database.\n\nThis will:\n• Execute all pending migrations in order\n• Update _prisma_migrations table\n• May modify database schema",
 			OnSelect: func() error {
 				a.CloseModal()
-				resultModal := NewMessageModal(a.g, "Action Selected",
+				resultModal := NewMessageModal(a.g, a.Tr,"Action Selected",
 					"You selected: Run Migrations",
 				).WithStyle(MessageModalStyle{TitleColor: ColorGreen, BorderColor: ColorGreen})
 				a.OpenModal(resultModal)
@@ -124,7 +124,7 @@ func (a *App) TestListModal() {
 			Description: "Reset the database to a clean state.\n\nWARNING: This will:\n• Drop all tables and data\n• Re-run all migrations from scratch\n• Cannot be undone",
 			OnSelect: func() error {
 				a.CloseModal()
-				resultModal := NewMessageModal(a.g, "Action Selected",
+				resultModal := NewMessageModal(a.g, a.Tr,"Action Selected",
 					"You selected: Reset Database",
 				).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 				a.OpenModal(resultModal)
@@ -136,7 +136,7 @@ func (a *App) TestListModal() {
 			Description: "Validate the Prisma schema file.\n\nThis will:\n• Check for syntax errors\n• Verify model relationships\n• Validate field types\n• Report any issues",
 			OnSelect: func() error {
 				a.CloseModal()
-				resultModal := NewMessageModal(a.g, "Action Selected",
+				resultModal := NewMessageModal(a.g, a.Tr,"Action Selected",
 					"You selected: Validate Schema",
 				).WithStyle(MessageModalStyle{TitleColor: ColorGreen, BorderColor: ColorGreen})
 				a.OpenModal(resultModal)
@@ -145,7 +145,7 @@ func (a *App) TestListModal() {
 		},
 	}
 
-	modal := NewListModal(a.g, "Select Action", items,
+	modal := NewListModal(a.g, a.Tr,"Select Action", items,
 		func() {
 			// Cancel - just close modal
 			a.CloseModal()
@@ -157,12 +157,12 @@ func (a *App) TestListModal() {
 
 // TestConfirmModal opens a test confirm modal (temporary for testing)
 func (a *App) TestConfirmModal() {
-	modal := NewConfirmModal(a.g, "Confirm Action",
+	modal := NewConfirmModal(a.g, a.Tr,"Confirm Action",
 		"Are you sure you want to proceed with this action? This cannot be undone.",
 		func() {
 			// Yes callback - close confirm modal and show result
 			a.CloseModal()
-			resultModal := NewMessageModal(a.g, "Confirmed",
+			resultModal := NewMessageModal(a.g, a.Tr,"Confirmed",
 				"You clicked Yes!",
 			).WithStyle(MessageModalStyle{TitleColor: ColorGreen, BorderColor: ColorGreen})
 			a.OpenModal(resultModal)
@@ -170,7 +170,7 @@ func (a *App) TestConfirmModal() {
 		func() {
 			// No callback - close confirm modal and show result
 			a.CloseModal()
-			resultModal := NewMessageModal(a.g, "Cancelled",
+			resultModal := NewMessageModal(a.g, a.Tr,"Cancelled",
 				"You clicked No!",
 			).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 			a.OpenModal(resultModal)

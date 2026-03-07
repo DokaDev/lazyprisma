@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/dokadev/lazyprisma/pkg/i18n"
 	"github.com/jesseduffield/gocui"
 	"github.com/jesseduffield/lazycore/pkg/boxlayout"
 )
@@ -18,6 +19,7 @@ type ListModalItem struct {
 // ListModal displays a list of items with descriptions
 type ListModal struct {
 	g            *gocui.Gui
+	tr           *i18n.TranslationSet
 	title        string
 	items        []ListModalItem
 	selectedIdx  int
@@ -29,9 +31,10 @@ type ListModal struct {
 }
 
 // NewListModal creates a new list modal
-func NewListModal(g *gocui.Gui, title string, items []ListModalItem, onCancel func()) *ListModal {
+func NewListModal(g *gocui.Gui, tr *i18n.TranslationSet, title string, items []ListModalItem, onCancel func()) *ListModal {
 	return &ListModal{
 		g:           g,
+		tr:          tr,
 		title:       title,
 		items:       items,
 		selectedIdx: 0,
@@ -189,7 +192,7 @@ func (m *ListModal) drawDescView(x0, y0, x1, y1 int) error {
 	v.Frame = true
 	v.FrameRunes = []rune{'─', '│', '╭', '╮', '╰', '╯'}
 	v.Title = ""
-	v.Footer = " [↑/↓] Navigate [Enter] Select [ESC] Cancel "
+	v.Footer = m.tr.ModalFooterListNavigate
 
 	// Apply frame color (border) if set
 	if m.style.BorderColor != ColorDefault {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/dokadev/lazyprisma/pkg/i18n"
 	"github.com/jesseduffield/gocui"
 	"github.com/jesseduffield/lazycore/pkg/boxlayout"
 )
@@ -11,6 +12,7 @@ import (
 // ConfirmModal displays a confirmation dialog with Yes/No options
 type ConfirmModal struct {
 	g       *gocui.Gui
+	tr      *i18n.TranslationSet
 	title   string
 	message string
 	onYes   func()
@@ -21,9 +23,10 @@ type ConfirmModal struct {
 }
 
 // NewConfirmModal creates a new confirmation modal
-func NewConfirmModal(g *gocui.Gui, title string, message string, onYes func(), onNo func()) *ConfirmModal {
+func NewConfirmModal(g *gocui.Gui, tr *i18n.TranslationSet, title string, message string, onYes func(), onNo func()) *ConfirmModal {
 	return &ConfirmModal{
 		g:       g,
+		tr:      tr,
 		title:   title,
 		message: message,
 		onYes:   onYes,
@@ -89,7 +92,7 @@ func (m *ConfirmModal) Draw(dim boxlayout.Dimensions) error {
 	v.Frame = true
 	v.FrameRunes = []rune{'─', '│', '╭', '╮', '╰', '╯'}
 	v.Title = " " + m.title + " "
-	v.Footer = " [Y] Yes [N] No [ESC] Cancel "
+	v.Footer = m.tr.ModalFooterConfirmYesNo
 
 	// Apply frame color (border) if set
 	if m.style.BorderColor != ColorDefault {

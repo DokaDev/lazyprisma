@@ -29,8 +29,8 @@ func (a *App) MigrateDeploy() {
 		if !ok {
 			a.finishCommand()
 			a.g.Update(func(g *gocui.Gui) error {
-				modal := NewMessageModal(a.g, "Error",
-					"Failed to access migrations panel.",
+				modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleError,
+					a.Tr.ErrorFailedAccessMigrationsPanel,
 				).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 				a.OpenModal(modal)
 				return nil
@@ -42,9 +42,9 @@ func (a *App) MigrateDeploy() {
 		if !migrationsPanel.dbConnected {
 			a.finishCommand()
 			a.g.Update(func(g *gocui.Gui) error {
-				modal := NewMessageModal(a.g, "Database Connection Required",
-					"No database connection detected.",
-					"Please ensure your database is running and accessible.",
+				modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleDBConnectionRequired,
+					a.Tr.ErrorNoDBConnectionDetected,
+					a.Tr.ErrorEnsureDBAccessible,
 				).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 				a.OpenModal(modal)
 				return nil
@@ -63,9 +63,9 @@ func (a *App) MigrateDeploy() {
 		if err != nil {
 			a.finishCommand()
 			a.g.Update(func(g *gocui.Gui) error {
-				outputPanel.LogAction("Migrate Deploy Error", "Failed to get working directory: "+err.Error())
-				modal := NewMessageModal(a.g, "Migrate Deploy Error",
-					"Failed to get working directory:",
+				outputPanel.LogAction(a.Tr.LogActionMigrateDeployFailed, a.Tr.ErrorFailedGetWorkingDir+" "+err.Error())
+				modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleMigrateDeployError,
+					a.Tr.ErrorFailedGetWorkingDir,
 					err.Error(),
 				).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 				a.OpenModal(modal)
@@ -76,7 +76,7 @@ func (a *App) MigrateDeploy() {
 
 		// Log action start
 		a.g.Update(func(g *gocui.Gui) error {
-			outputPanel.LogAction("Migrate Deploy", "Running prisma migrate deploy...")
+			outputPanel.LogAction(a.Tr.LogActionMigrateDeploy, a.Tr.LogMsgRunningMigrateDeploy)
 			return nil
 		})
 
@@ -111,21 +111,21 @@ func (a *App) MigrateDeploy() {
 					a.finishCommand() // Finish command
 					if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
 						if exitCode == 0 {
-							out.LogAction("Migrate Deploy Complete", "Migrations applied successfully")
+							out.LogAction(a.Tr.LogActionMigrateDeployComplete, a.Tr.LogMsgMigrationsAppliedSuccess)
 							// Refresh all panels to show updated migration status
 							a.RefreshAll()
 							// Show success modal
-							modal := NewMessageModal(a.g, "Migrate Deploy Successful",
-								"Migrations applied successfully!",
+							modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleMigrateDeploySuccess,
+								a.Tr.ModalMsgMigrationsAppliedSuccess,
 							).WithStyle(MessageModalStyle{TitleColor: ColorGreen, BorderColor: ColorGreen})
 							a.OpenModal(modal)
 						} else {
-							out.LogAction("Migrate Deploy Failed", fmt.Sprintf("Migrate deploy failed with exit code: %d", exitCode))
+							out.LogAction(a.Tr.LogActionMigrateDeployFailed, fmt.Sprintf(a.Tr.LogMsgMigrateDeployFailedCode, exitCode))
 							// Refresh even on failure - DB state may have changed
 							a.RefreshAll()
-							modal := NewMessageModal(a.g, "Migrate Deploy Failed",
-								fmt.Sprintf("Prisma migrate deploy failed with exit code: %d", exitCode),
-								"Check output panel for details.",
+							modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleMigrateDeployFailed,
+								fmt.Sprintf(a.Tr.ModalMsgMigrateDeployFailedWithCode, exitCode),
+								a.Tr.ModalMsgCheckOutputPanel,
 							).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 							a.OpenModal(modal)
 						}
@@ -138,9 +138,9 @@ func (a *App) MigrateDeploy() {
 				a.g.Update(func(g *gocui.Gui) error {
 					a.finishCommand() // Finish command
 					if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
-						out.LogAction("Migrate Deploy Error", err.Error())
-						modal := NewMessageModal(a.g, "Migrate Deploy Error",
-							"Failed to run prisma migrate deploy:",
+						out.LogAction(a.Tr.LogActionMigrateDeployFailed, err.Error())
+						modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleMigrateDeployError,
+							a.Tr.ModalMsgFailedRunMigrateDeploy,
 							err.Error(),
 						).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 						a.OpenModal(modal)
@@ -153,9 +153,9 @@ func (a *App) MigrateDeploy() {
 		if err := deployCmd.RunAsync(); err != nil {
 			a.finishCommand() // Clean up if command fails to start
 			a.g.Update(func(g *gocui.Gui) error {
-				outputPanel.LogAction("Migrate Deploy Error", "Failed to start migrate deploy: "+err.Error())
-				modal := NewMessageModal(a.g, "Migrate Deploy Error",
-					"Failed to start migrate deploy:",
+				outputPanel.LogAction(a.Tr.LogActionMigrateDeployFailed, a.Tr.ModalMsgFailedStartMigrateDeploy+" "+err.Error())
+				modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleMigrateDeployError,
+					a.Tr.ModalMsgFailedStartMigrateDeploy,
 					err.Error(),
 				).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 				a.OpenModal(modal)
@@ -169,8 +169,8 @@ func (a *App) MigrateDeploy() {
 func (a *App) MigrateDev() {
 	items := []ListModalItem{
 		{
-			Label:       "Schema diff-based migration",
-			Description: "Create a migration from changes in Prisma schema, apply it to the database, trigger generators (e.g. Prisma Client)",
+			Label:       a.Tr.ListItemSchemaDiffMigration,
+			Description: a.Tr.ListItemDescSchemaDiffMigration,
 			OnSelect: func() error {
 				a.CloseModal()
 				a.SchemaDiffMigration()
@@ -178,8 +178,8 @@ func (a *App) MigrateDev() {
 			},
 		},
 		{
-			Label:       "Manual migration",
-			Description: "This tool creates manual migrations for database changes that cannot be expressed through Prisma schema diff. It is used to explicitly record and version control database-specific logic such as triggers, functions, and DML operations that cannot be managed at the Prisma schema level.",
+			Label:       a.Tr.ListItemManualMigration,
+			Description: a.Tr.ListItemDescManualMigration,
 			OnSelect: func() error {
 				a.CloseModal()
 				a.showManualMigrationInput()
@@ -188,7 +188,7 @@ func (a *App) MigrateDev() {
 		},
 	}
 
-	modal := NewListModal(a.g, "Migrate Dev", items,
+	modal := NewListModal(a.g, a.Tr, a.Tr.ModalTitleMigrateDev, items,
 		func() {
 			// Cancel - just close modal
 			a.CloseModal()
@@ -216,9 +216,9 @@ func (a *App) executeCreateMigration(migrationName string) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		a.finishCommand()
-		outputPanel.LogAction("Migration Error", "Failed to get working directory: "+err.Error())
-		modal := NewMessageModal(a.g, "Migration Error",
-			"Failed to get working directory:",
+		outputPanel.LogAction(a.Tr.LogActionMigrationError, a.Tr.ErrorFailedGetWorkingDir+" "+err.Error())
+		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleMigrationError,
+			a.Tr.ErrorFailedGetWorkingDir,
 			err.Error(),
 		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 		a.OpenModal(modal)
@@ -226,7 +226,7 @@ func (a *App) executeCreateMigration(migrationName string) {
 	}
 
 	// Log action start
-	outputPanel.LogAction("Migrate Dev", fmt.Sprintf("Creating migration: %s", migrationName))
+	outputPanel.LogAction(a.Tr.LogActionMigrateDev, fmt.Sprintf(a.Tr.LogMsgCreatingMigration, migrationName))
 
 	// Create command builder
 	builder := commands.NewCommandBuilder(commands.NewPlatform())
@@ -263,18 +263,18 @@ func (a *App) executeCreateMigration(migrationName string) {
 
 				if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
 					if exitCode == 0 {
-						out.LogAction("Migrate Complete", "Migration created successfully")
+						out.LogAction(a.Tr.LogActionMigrateComplete, a.Tr.LogMsgMigrationCreatedSuccess)
 						// Show success modal
-						modal := NewMessageModal(a.g, "Migration Created",
-							fmt.Sprintf("Migration '%s' created successfully!", migrationName),
-							"You can find it in the prisma/migrations directory.",
+						modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleMigrationCreated,
+							fmt.Sprintf(a.Tr.ModalMsgMigrationCreatedSuccess, migrationName),
+							a.Tr.ModalMsgMigrationCreatedDetail,
 						).WithStyle(MessageModalStyle{TitleColor: ColorGreen, BorderColor: ColorGreen})
 						a.OpenModal(modal)
 					} else {
-						out.LogAction("Migrate Failed", fmt.Sprintf("Migration creation failed with exit code: %d", exitCode))
-						modal := NewMessageModal(a.g, "Migration Failed",
-							fmt.Sprintf("Prisma migrate dev failed with exit code: %d", exitCode),
-							"Check output panel for details.",
+						out.LogAction(a.Tr.LogActionMigrateFailed, fmt.Sprintf(a.Tr.LogMsgMigrationCreationFailedCode, exitCode))
+						modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleMigrationFailed,
+							fmt.Sprintf(a.Tr.ModalMsgMigrationFailedWithCode, exitCode),
+							a.Tr.ModalMsgCheckOutputPanel,
 						).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 						a.OpenModal(modal)
 					}
@@ -287,9 +287,9 @@ func (a *App) executeCreateMigration(migrationName string) {
 			a.g.Update(func(g *gocui.Gui) error {
 				a.finishCommand() // Finish command
 				if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
-					out.LogAction("Migration Error", err.Error())
-					modal := NewMessageModal(a.g, "Migration Error",
-						"Failed to run prisma migrate dev:",
+					out.LogAction(a.Tr.LogActionMigrationError, err.Error())
+					modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleMigrationError,
+						a.Tr.ModalMsgFailedRunMigrateDeploy,
 						err.Error(),
 					).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 					a.OpenModal(modal)
@@ -301,9 +301,9 @@ func (a *App) executeCreateMigration(migrationName string) {
 	// Run async to avoid blocking UI (spinner will show automatically)
 	if err := createCmd.RunAsync(); err != nil {
 		a.finishCommand() // Clean up if command fails to start
-		outputPanel.LogAction("Migration Error", "Failed to start migrate dev: "+err.Error())
-		modal := NewMessageModal(a.g, "Migration Error",
-			"Failed to start migrate dev:",
+		outputPanel.LogAction(a.Tr.LogActionMigrationError, a.Tr.ModalMsgFailedStartMigrateDeploy+" "+err.Error())
+		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleMigrationError,
+			a.Tr.ModalMsgFailedStartMigrateDeploy,
 			err.Error(),
 		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 		a.OpenModal(modal)
@@ -317,8 +317,8 @@ func (a *App) SchemaDiffMigration() {
 		// 2. Check DB connection
 		migrationsPanel, ok := a.panels[ViewMigrations].(*MigrationsPanel)
 		if !ok {
-			modal := NewMessageModal(a.g, "Error",
-				"Failed to access migrations panel.",
+			modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleError,
+				a.Tr.ErrorFailedAccessMigrationsPanel,
 			).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 			a.OpenModal(modal)
 			return
@@ -326,9 +326,9 @@ func (a *App) SchemaDiffMigration() {
 
 		// Check if DB is connected
 		if !migrationsPanel.dbConnected {
-			modal := NewMessageModal(a.g, "Database Connection Required",
-				"No database connection detected.",
-				"Please ensure your database is running and accessible.",
+			modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleDBConnectionRequired,
+				a.Tr.ErrorNoDBConnectionDetected,
+				a.Tr.ErrorEnsureDBAccessible,
 			).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 			a.OpenModal(modal)
 			return
@@ -336,9 +336,9 @@ func (a *App) SchemaDiffMigration() {
 
 		// 3. Check for DB-Only migrations
 		if len(migrationsPanel.category.DBOnly) > 0 {
-			modal := NewMessageModal(a.g, "DB-Only Migrations Detected",
-				"Cannot create new migration whilst DB-Only migrations exist.",
-				"Please resolve DB-Only migrations first.",
+			modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleDBOnlyMigrationsDetected,
+				a.Tr.ModalMsgCannotCreateWithDBOnly,
+				a.Tr.ModalMsgResolveDBOnlyFirst,
 			).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 			a.OpenModal(modal)
 			return
@@ -347,9 +347,9 @@ func (a *App) SchemaDiffMigration() {
 		// 4. Check for Checksum Mismatch
 		for _, m := range migrationsPanel.category.Local {
 			if m.ChecksumMismatch {
-				modal := NewMessageModal(a.g, "Checksum Mismatch Detected",
-					"Cannot create new migration whilst checksum mismatch exists.",
-					fmt.Sprintf("Migration '%s' has been modified locally.", m.Name),
+				modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleChecksumMismatchDetected,
+					a.Tr.ModalMsgCannotCreateWithMismatch,
+					fmt.Sprintf(a.Tr.ModalMsgMigrationModifiedLocally, m.Name),
 				).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 				a.OpenModal(modal)
 				return
@@ -361,10 +361,10 @@ func (a *App) SchemaDiffMigration() {
 			// Check if any pending migration is empty
 			for _, m := range migrationsPanel.category.Pending {
 				if m.IsEmpty {
-					modal := NewMessageModal(a.g, "Empty Pending Migration Detected",
-						"Cannot create new migration whilst empty pending migrations exist.",
-						fmt.Sprintf("Migration '%s' is pending and empty.", m.Name),
-						"Please delete it or add SQL content.",
+					modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleEmptyPendingDetected,
+						a.Tr.ModalMsgCannotCreateWithEmpty,
+						fmt.Sprintf(a.Tr.ModalMsgMigrationPendingEmpty, m.Name),
+						a.Tr.ModalMsgDeleteOrAddContent,
 					).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 					a.OpenModal(modal)
 					return
@@ -372,8 +372,8 @@ func (a *App) SchemaDiffMigration() {
 			}
 
 			// Show confirmation modal for normal pending migrations
-			modal := NewConfirmModal(a.g, "Pending Migrations Detected",
-				"Prisma automatically applies pending migrations before creating new ones. This may cause unintended behaviour in the future. Do you wish to continue?",
+			modal := NewConfirmModal(a.g, a.Tr, a.Tr.ModalTitlePendingMigrationsDetected,
+				a.Tr.ModalMsgPendingMigrationsWarning,
 				func() {
 					// Yes - proceed with migration name input
 					a.CloseModal()
@@ -394,9 +394,9 @@ func (a *App) SchemaDiffMigration() {
 
 	if !started {
 		// If refresh failed to start (e.g., another command running), show error
-		modal := NewMessageModal(a.g, "Operation Blocked",
-			"Another operation is currently running.",
-			"Please wait for it to complete.",
+		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleOperationBlocked,
+			a.Tr.ModalMsgAnotherOperationRunning,
+			a.Tr.ModalMsgWaitComplete,
 		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 		a.OpenModal(modal)
 	}
@@ -407,8 +407,8 @@ func (a *App) createManualMigration(migrationName string) {
 	// Get current working directory
 	cwd, err := os.Getwd()
 	if err != nil {
-		modal := NewMessageModal(a.g, "Error",
-			"Failed to get working directory:",
+		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleError,
+			a.Tr.ErrorFailedGetWorkingDir,
 			err.Error(),
 		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 		a.OpenModal(modal)
@@ -425,8 +425,8 @@ func (a *App) createManualMigration(migrationName string) {
 
 	// Create migration folder
 	if err := os.MkdirAll(migrationFolder, 0755); err != nil {
-		modal := NewMessageModal(a.g, "Error",
-			"Failed to create migration folder:",
+		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleError,
+			a.Tr.ModalMsgFailedDeleteFolder,
 			err.Error(),
 		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 		a.OpenModal(modal)
@@ -438,8 +438,8 @@ func (a *App) createManualMigration(migrationName string) {
 	initialContent := "-- This migration was manually created via lazyprisma\n\n"
 
 	if err := os.WriteFile(migrationFile, []byte(initialContent), 0644); err != nil {
-		modal := NewMessageModal(a.g, "Error",
-			"Failed to create migration.sql:",
+		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleError,
+			a.Tr.ErrorFailedGetWorkingDir,
 			err.Error(),
 		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 		a.OpenModal(modal)
@@ -449,16 +449,16 @@ func (a *App) createManualMigration(migrationName string) {
 	// Success - show result and refresh
 	a.RefreshAll()
 
-	modal := NewMessageModal(a.g, "Manual Migration Created",
-		fmt.Sprintf("Created: %s", folderName),
-		fmt.Sprintf("Location: %s", migrationFolder),
+	modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleMigrationCreated,
+		fmt.Sprintf(a.Tr.ModalMsgManualMigrationCreated, folderName),
+		fmt.Sprintf(a.Tr.ModalMsgManualMigrationLocation, migrationFolder),
 	).WithStyle(MessageModalStyle{TitleColor: ColorGreen, BorderColor: ColorGreen})
 	a.OpenModal(modal)
 }
 
 // showMigrationNameInput shows input modal for migration name
 func (a *App) showMigrationNameInput() {
-	modal := NewInputModal(a.g, "Enter migration name",
+	modal := NewInputModal(a.g, a.Tr, a.Tr.ModalTitleEnterMigrationName,
 		func(input string) {
 			// Replace spaces with underscores
 			migrationName := strings.ReplaceAll(strings.TrimSpace(input), " ", "_")
@@ -474,12 +474,12 @@ func (a *App) showMigrationNameInput() {
 			a.CloseModal()
 		},
 	).WithStyle(MessageModalStyle{TitleColor: ColorCyan, BorderColor: ColorCyan}).
-		WithSubtitle("Spaces will be replaced with underscores").
+		WithSubtitle(a.Tr.ModalMsgSpacesReplaced).
 		WithRequired(true).
 		OnValidationFail(func(reason string) {
 			// Validation failed - show error
 			a.CloseModal()
-			errorModal := NewMessageModal(a.g, "Validation Failed",
+			errorModal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleValidationFailed,
 				reason,
 			).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 			a.OpenModal(errorModal)
@@ -490,7 +490,7 @@ func (a *App) showMigrationNameInput() {
 
 // showManualMigrationInput shows input modal for manual migration name
 func (a *App) showManualMigrationInput() {
-	modal := NewInputModal(a.g, "Enter migration name",
+	modal := NewInputModal(a.g, a.Tr, a.Tr.ModalTitleEnterMigrationName,
 		func(input string) {
 			// Replace spaces with underscores
 			migrationName := strings.ReplaceAll(strings.TrimSpace(input), " ", "_")
@@ -506,12 +506,12 @@ func (a *App) showManualMigrationInput() {
 			a.CloseModal()
 		},
 	).WithStyle(MessageModalStyle{TitleColor: ColorCyan, BorderColor: ColorCyan}).
-		WithSubtitle("Spaces will be replaced with underscores").
+		WithSubtitle(a.Tr.ModalMsgSpacesReplaced).
 		WithRequired(true).
 		OnValidationFail(func(reason string) {
 			// Validation failed - show error
 			a.CloseModal()
-			errorModal := NewMessageModal(a.g, "Validation Failed",
+			errorModal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleValidationFailed,
 				reason,
 			).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 			a.OpenModal(errorModal)
@@ -538,9 +538,9 @@ func (a *App) Generate() {
 	cwd, err := os.Getwd()
 	if err != nil {
 		a.finishCommand()
-		outputPanel.LogAction("Generate Error", "Failed to get working directory: "+err.Error())
-		modal := NewMessageModal(a.g, "Generate Error",
-			"Failed to get working directory:",
+		outputPanel.LogAction(a.Tr.LogActionGenerateError, a.Tr.ErrorFailedGetWorkingDir+" "+err.Error())
+		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleGenerateError,
+			a.Tr.ErrorFailedGetWorkingDir,
 			err.Error(),
 		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 		a.OpenModal(modal)
@@ -548,7 +548,7 @@ func (a *App) Generate() {
 	}
 
 	// Log action start
-	outputPanel.LogAction("Generate", "Running prisma generate...")
+	outputPanel.LogAction(a.Tr.LogActionGenerate, a.Tr.LogMsgRunningGenerate)
 
 	// Create command builder
 	builder := commands.NewCommandBuilder(commands.NewPlatform())
@@ -581,15 +581,15 @@ func (a *App) Generate() {
 				if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
 					if exitCode == 0 {
 						a.finishCommand() // Finish immediately on success
-						out.LogAction("Generate Complete", "Prisma Client generated successfully")
+						out.LogAction(a.Tr.LogActionGenerateComplete, a.Tr.LogMsgPrismaClientGeneratedSuccess)
 						// Show success modal
-						modal := NewMessageModal(a.g, "Generate Successful",
-							"Prisma Client generated successfully!",
+						modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleGenerateSuccess,
+							a.Tr.ModalMsgPrismaClientGenerated,
 						).WithStyle(MessageModalStyle{TitleColor: ColorGreen, BorderColor: ColorGreen})
 						a.OpenModal(modal)
 					} else {
 						// Failed - run validate to check schema (keep spinner running)
-						out.LogAction("Generate Failed", "Checking schema for errors...")
+						out.LogAction(a.Tr.LogActionGenerateFailed, a.Tr.LogMsgCheckingSchemaErrors)
 
 						// Run validate in goroutine to not block UI updates
 						go func() {
@@ -602,19 +602,19 @@ func (a *App) Generate() {
 								if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
 									if err == nil && !validateResult.Valid {
 										// Schema has validation errors - show them
-										out.LogAction("Schema Validation Failed", fmt.Sprintf("Found %d schema errors", len(validateResult.Errors)))
+										out.LogAction(a.Tr.LogActionSchemaValidationFailed, fmt.Sprintf(a.Tr.LogMsgFoundSchemaErrors, len(validateResult.Errors)))
 
 										// Show validation errors in modal
-										modal := NewMessageModal(a.g, "Schema Validation Failed",
-											"Generate failed due to schema errors.",
+										modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleSchemaValidationFailed,
+											a.Tr.ModalMsgGenerateFailedSchemaErrors,
 										).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 										a.OpenModal(modal)
 									} else {
 										// Schema is valid but generate failed for other reasons
-										out.LogAction("Generate Failed", fmt.Sprintf("Generate failed with exit code: %d", exitCode))
-										modal := NewMessageModal(a.g, "Generate Failed",
-											fmt.Sprintf("Prisma generate failed with exit code: %d", exitCode),
-											"Schema is valid. Check output panel for details.",
+										out.LogAction(a.Tr.LogActionGenerateFailed, fmt.Sprintf(a.Tr.LogMsgFoundSchemaErrors, exitCode))
+										modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleGenerateFailed,
+											fmt.Sprintf(a.Tr.ModalMsgGenerateFailedWithCode, exitCode),
+											a.Tr.ModalMsgSchemaValidCheckOutput,
 										).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 										a.OpenModal(modal)
 									}
@@ -634,7 +634,7 @@ func (a *App) Generate() {
 					// Check if it's an exit status error (command ran but failed)
 					if strings.Contains(err.Error(), "exit status") {
 						// Failed - run validate to check schema (keep spinner running)
-						out.LogAction("Generate Failed", "Checking schema for errors...")
+						out.LogAction(a.Tr.LogActionGenerateFailed, a.Tr.LogMsgCheckingSchemaErrors)
 
 						// Run validate in goroutine to not block UI updates
 						go func() {
@@ -647,19 +647,19 @@ func (a *App) Generate() {
 								if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
 									if validateErr == nil && !validateResult.Valid {
 										// Schema has validation errors - show them
-										out.LogAction("Schema Validation Failed", fmt.Sprintf("Found %d schema errors", len(validateResult.Errors)))
+										out.LogAction(a.Tr.LogActionSchemaValidationFailed, fmt.Sprintf(a.Tr.LogMsgFoundSchemaErrors, len(validateResult.Errors)))
 
 										// Show validation errors in modal
-										modal := NewMessageModal(a.g, "Schema Validation Failed",
-											"Generate failed due to schema errors.",
+										modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleSchemaValidationFailed,
+											a.Tr.ModalMsgGenerateFailedSchemaErrors,
 										).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 										a.OpenModal(modal)
 									} else {
 										// Schema is valid but generate failed for other reasons
-										out.LogAction("Generate Failed", err.Error())
-										modal := NewMessageModal(a.g, "Generate Failed",
-											"Prisma generate failed:",
-											"Schema is valid. Check output panel for details.",
+										out.LogAction(a.Tr.LogActionGenerateFailed, err.Error())
+										modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleGenerateFailed,
+											a.Tr.ModalMsgFailedRunGenerate,
+											a.Tr.ModalMsgSchemaValidCheckOutput,
 										).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 										a.OpenModal(modal)
 									}
@@ -670,9 +670,9 @@ func (a *App) Generate() {
 					} else {
 						// Other error (command couldn't start, etc.)
 						a.finishCommand() // Finish immediately on startup error
-						out.LogAction("Generate Error", err.Error())
-						modal := NewMessageModal(a.g, "Generate Error",
-							"Failed to run prisma generate:",
+						out.LogAction(a.Tr.LogActionGenerateError, err.Error())
+						modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleGenerateError,
+							a.Tr.ModalMsgFailedRunGenerate,
 							err.Error(),
 						).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 						a.OpenModal(modal)
@@ -685,9 +685,9 @@ func (a *App) Generate() {
 	// Run async to avoid blocking UI (spinner will show automatically)
 	if err := generateCmd.RunAsync(); err != nil {
 		a.finishCommand() // Clean up if command fails to start
-		outputPanel.LogAction("Generate Error", "Failed to start generate: "+err.Error())
-		modal := NewMessageModal(a.g, "Generate Error",
-			"Failed to start generate:",
+		outputPanel.LogAction(a.Tr.LogActionGenerateError, a.Tr.ModalMsgFailedStartGenerate+" "+err.Error())
+		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleGenerateError,
+			a.Tr.ModalMsgFailedStartGenerate,
 			err.Error(),
 		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 		a.OpenModal(modal)
@@ -699,8 +699,8 @@ func (a *App) MigrateResolve() {
 	// Get migrations panel
 	migrationsPanel, ok := a.panels[ViewMigrations].(*MigrationsPanel)
 	if !ok {
-		modal := NewMessageModal(a.g, "Error",
-			"Failed to access migrations panel.",
+		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleError,
+			a.Tr.ErrorFailedAccessMigrationsPanel,
 		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 		a.OpenModal(modal)
 		return
@@ -709,8 +709,8 @@ func (a *App) MigrateResolve() {
 	// Get selected migration
 	selectedMigration := migrationsPanel.GetSelectedMigration()
 	if selectedMigration == nil {
-		modal := NewMessageModal(a.g, "No Migration Selected",
-			"Please select a migration to resolve.",
+		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleNoMigrationSelected,
+			a.Tr.ModalMsgSelectMigrationResolve,
 		).WithStyle(MessageModalStyle{TitleColor: ColorYellow, BorderColor: ColorYellow})
 		a.OpenModal(modal)
 		return
@@ -718,9 +718,9 @@ func (a *App) MigrateResolve() {
 
 	// Check if migration is failed (only In-Transaction migrations can be resolved)
 	if !selectedMigration.IsFailed {
-		modal := NewMessageModal(a.g, "Cannot Resolve Migration",
-			"Only migrations in 'In-Transaction' state can be resolved.",
-			fmt.Sprintf("Migration '%s' is not in a failed state.", selectedMigration.Name),
+		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleCannotResolveMigration,
+			a.Tr.ModalMsgOnlyInTransactionResolve,
+			fmt.Sprintf(a.Tr.ModalMsgMigrationNotFailed, selectedMigration.Name),
 		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 		a.OpenModal(modal)
 		return
@@ -731,8 +731,8 @@ func (a *App) MigrateResolve() {
 
 	items := []ListModalItem{
 		{
-			Label:       "Mark as applied",
-			Description: "Mark this migration as successfully applied to the database. Use this if you have manually fixed the issue and the migration changes are now present in the database.",
+			Label:       a.Tr.ListItemMarkApplied,
+			Description: a.Tr.ListItemDescMarkApplied,
 			OnSelect: func() error {
 				a.CloseModal()
 				a.executeResolve(migrationName, "applied")
@@ -740,8 +740,8 @@ func (a *App) MigrateResolve() {
 			},
 		},
 		{
-			Label:       "Mark as rolled back",
-			Description: "Mark this migration as rolled back (reverted from the database). Use this if you have manually reverted the changes and the migration is no longer applied to the database.",
+			Label:       a.Tr.ListItemMarkRolledBack,
+			Description: a.Tr.ListItemDescMarkRolledBack,
 			OnSelect: func() error {
 				a.CloseModal()
 				a.executeResolve(migrationName, "rolled-back")
@@ -750,7 +750,7 @@ func (a *App) MigrateResolve() {
 		},
 	}
 
-	modal := NewListModal(a.g, "Resolve Migration: "+migrationName, items,
+	modal := NewListModal(a.g, a.Tr, fmt.Sprintf(a.Tr.ModalTitleResolveMigration, migrationName), items,
 		func() { a.CloseModal() },
 	).WithStyle(MessageModalStyle{TitleColor: ColorCyan, BorderColor: ColorCyan})
 
@@ -775,9 +775,9 @@ func (a *App) executeResolve(migrationName string, action string) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		a.finishCommand()
-		outputPanel.LogAction("Migrate Resolve Error", "Failed to get working directory: "+err.Error())
-		modal := NewMessageModal(a.g, "Migrate Resolve Error",
-			"Failed to get working directory:",
+		outputPanel.LogAction(a.Tr.LogActionMigrateResolveError, a.Tr.ErrorFailedGetWorkingDir+" "+err.Error())
+		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleMigrateResolveError,
+			a.Tr.ErrorFailedGetWorkingDir,
 			err.Error(),
 		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 		a.OpenModal(modal)
@@ -789,7 +789,7 @@ func (a *App) executeResolve(migrationName string, action string) {
 	if action == "rolled-back" {
 		actionLabel = "rolled back"
 	}
-	outputPanel.LogAction("Migrate Resolve", fmt.Sprintf("Marking migration as %s: %s", actionLabel, migrationName))
+	outputPanel.LogAction(a.Tr.LogActionMigrateResolve, fmt.Sprintf(a.Tr.LogMsgMarkingMigration, actionLabel, migrationName))
 
 	// Create command builder
 	builder := commands.NewCommandBuilder(commands.NewPlatform())
@@ -824,17 +824,17 @@ func (a *App) executeResolve(migrationName string, action string) {
 				a.RefreshAll()
 				if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
 					if exitCode == 0 {
-						out.LogAction("Migrate Resolve Complete", fmt.Sprintf("Migration marked as %s successfully", actionLabel))
+						out.LogAction(a.Tr.LogActionMigrateResolveComplete, fmt.Sprintf(a.Tr.LogMsgMigrationMarked, actionLabel))
 						// Show success modal
-						modal := NewMessageModal(a.g, "Migrate Resolve Successful",
-							fmt.Sprintf("Migration marked as %s successfully!", actionLabel),
+						modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleMigrateResolveSuccess,
+							fmt.Sprintf(a.Tr.ModalMsgMigrationMarkedSuccess, actionLabel),
 						).WithStyle(MessageModalStyle{TitleColor: ColorGreen, BorderColor: ColorGreen})
 						a.OpenModal(modal)
 					} else {
-						out.LogAction("Migrate Resolve Failed", fmt.Sprintf("Migrate resolve failed with exit code: %d", exitCode))
-						modal := NewMessageModal(a.g, "Migrate Resolve Failed",
-							fmt.Sprintf("Prisma migrate resolve failed with exit code: %d", exitCode),
-							"Check output panel for details.",
+						out.LogAction(a.Tr.LogActionMigrateResolveFailed, fmt.Sprintf(a.Tr.LogMsgMigrateResolveFailedCode, exitCode))
+						modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleMigrateResolveFailed,
+							fmt.Sprintf(a.Tr.ModalMsgMigrateResolveFailedWithCode, exitCode),
+							a.Tr.ModalMsgCheckOutputPanel,
 						).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 						a.OpenModal(modal)
 					}
@@ -847,9 +847,9 @@ func (a *App) executeResolve(migrationName string, action string) {
 			a.g.Update(func(g *gocui.Gui) error {
 				a.finishCommand() // Finish command
 				if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
-					out.LogAction("Migrate Resolve Error", err.Error())
-					modal := NewMessageModal(a.g, "Migrate Resolve Error",
-						"Failed to run prisma migrate resolve:",
+					out.LogAction(a.Tr.LogActionMigrateResolveError, err.Error())
+					modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleMigrateResolveError,
+						a.Tr.ModalMsgFailedRunMigrateResolve,
 						err.Error(),
 					).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 					a.OpenModal(modal)
@@ -861,9 +861,9 @@ func (a *App) executeResolve(migrationName string, action string) {
 	// Run async to avoid blocking UI (spinner will show automatically)
 	if err := resolveCmd.RunAsync(); err != nil {
 		a.finishCommand() // Clean up if command fails to start
-		outputPanel.LogAction("Migrate Resolve Error", "Failed to start migrate resolve: "+err.Error())
-		modal := NewMessageModal(a.g, "Migrate Resolve Error",
-			"Failed to start migrate resolve:",
+		outputPanel.LogAction(a.Tr.LogActionMigrateResolveError, a.Tr.ModalMsgFailedStartMigrateResolve+" "+err.Error())
+		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleMigrateResolveError,
+			a.Tr.ModalMsgFailedStartMigrateResolve,
 			err.Error(),
 		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 		a.OpenModal(modal)
@@ -882,9 +882,9 @@ func (a *App) Studio() {
 		// Stop Studio
 		if a.studioCmd != nil {
 			if err := a.studioCmd.Kill(); err != nil {
-				outputPanel.LogAction("Studio Error", "Failed to stop Prisma Studio: "+err.Error())
-				modal := NewMessageModal(a.g, "Studio Error",
-					"Failed to stop Prisma Studio:",
+				outputPanel.LogAction(a.Tr.LogActionStudio, a.Tr.ModalMsgFailedStopStudio+" "+err.Error())
+				modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleStudioError,
+					a.Tr.ModalMsgFailedStopStudio,
 					err.Error(),
 				).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 				a.OpenModal(modal)
@@ -893,7 +893,7 @@ func (a *App) Studio() {
 			a.studioCmd = nil
 		}
 		a.studioRunning = false
-		outputPanel.LogAction("Studio Stopped", "Prisma Studio has been stopped")
+		outputPanel.LogAction(a.Tr.LogActionStudioStopped, a.Tr.LogMsgStudioHasStopped)
 
 		// Clear subtitle
 		outputPanel.SetSubtitle("")
@@ -904,8 +904,8 @@ func (a *App) Studio() {
 			return nil
 		})
 
-		modal := NewMessageModal(a.g, "Studio Stopped",
-			"Prisma Studio has been stopped.",
+		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleStudioStopped,
+			a.Tr.ModalMsgStudioStopped,
 		).WithStyle(MessageModalStyle{TitleColor: ColorYellow, BorderColor: ColorYellow})
 		a.OpenModal(modal)
 		return
@@ -922,9 +922,9 @@ func (a *App) Studio() {
 	cwd, err := os.Getwd()
 	if err != nil {
 		a.finishCommand()
-		outputPanel.LogAction("Studio Error", "Failed to get working directory: "+err.Error())
-		modal := NewMessageModal(a.g, "Studio Error",
-			"Failed to get working directory:",
+		outputPanel.LogAction(a.Tr.LogActionStudio, a.Tr.ErrorFailedGetWorkingDir+" "+err.Error())
+		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleStudioError,
+			a.Tr.ErrorFailedGetWorkingDir,
 			err.Error(),
 		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 		a.OpenModal(modal)
@@ -932,7 +932,7 @@ func (a *App) Studio() {
 	}
 
 	// Log action start
-	outputPanel.LogAction("Studio", "Starting Prisma Studio...")
+	outputPanel.LogAction(a.Tr.LogActionStudio, a.Tr.LogMsgStartingStudio)
 
 	// Create command builder
 	builder := commands.NewCommandBuilder(commands.NewPlatform())
@@ -946,9 +946,9 @@ func (a *App) Studio() {
 	// Start async
 	if err := studioCmd.RunAsync(); err != nil {
 		a.finishCommand()
-		outputPanel.LogAction("Studio Error", "Failed to start Prisma Studio: "+err.Error())
-		modal := NewMessageModal(a.g, "Studio Error",
-			"Failed to start Prisma Studio:",
+		outputPanel.LogAction(a.Tr.LogActionStudio, a.Tr.ModalMsgFailedStartStudio+" "+err.Error())
+		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleStudioError,
+			a.Tr.ModalMsgFailedStartStudio,
 			err.Error(),
 		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 		a.OpenModal(modal)
@@ -964,13 +964,13 @@ func (a *App) Studio() {
 			a.studioRunning = true
 			a.studioCmd = studioCmd // Save Command object
 
-			outputPanel.LogAction("Studio Started", "Prisma Studio is running at http://localhost:5555")
-			outputPanel.SetSubtitle("Prisma Studio listening on http://localhost:5555")
+			outputPanel.LogAction(a.Tr.LogActionStudioStarted, a.Tr.LogMsgStudioListeningAt)
+			outputPanel.SetSubtitle(a.Tr.LogMsgStudioListeningAt)
 
 			// Show info modal
-			modal := NewMessageModal(a.g, "Prisma Studio Started",
-				"Prisma Studio is running at http://localhost:5555",
-				"Press 'S' again to stop it.",
+			modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleStudioStarted,
+				a.Tr.ModalMsgStudioRunningAt,
+				a.Tr.ModalMsgPressStopStudio,
 			).WithStyle(MessageModalStyle{TitleColor: ColorGreen, BorderColor: ColorGreen})
 			a.OpenModal(modal)
 			return nil
@@ -989,8 +989,8 @@ func (a *App) DeleteMigration() {
 	// Get selected migration
 	selected := migrationsPanel.GetSelectedMigration()
 	if selected == nil {
-		modal := NewMessageModal(a.g, "No Selection",
-			"Please select a migration to delete.",
+		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleNoSelection,
+			a.Tr.ModalMsgSelectMigrationDelete,
 		).WithStyle(MessageModalStyle{TitleColor: ColorYellow, BorderColor: ColorYellow})
 		a.OpenModal(modal)
 		return
@@ -998,9 +998,9 @@ func (a *App) DeleteMigration() {
 
 	// Validate: Can only delete if it exists locally
 	if selected.Path == "" {
-		modal := NewMessageModal(a.g, "Cannot Delete",
-			"This migration exists only in the database (DB-Only).",
-			"Cannot delete a migration that has no local file.",
+		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleCannotDelete,
+			a.Tr.ModalMsgMigrationDBOnly,
+			a.Tr.ModalMsgCannotDeleteNoLocalFile,
 		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 		a.OpenModal(modal)
 		return
@@ -1009,17 +1009,17 @@ func (a *App) DeleteMigration() {
 	// Validate: Can only delete pending migrations (not applied to DB)
 	// Exception: If DB is not connected, we assume it's safe to delete local files (user responsibility)
 	if migrationsPanel.dbConnected && selected.AppliedAt != nil {
-		modal := NewMessageModal(a.g, "Cannot Delete",
-			"This migration has already been applied to the database.",
-			"Deleting it locally will cause inconsistency.",
+		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleCannotDelete,
+			a.Tr.ModalMsgMigrationAlreadyApplied,
+			a.Tr.ModalMsgDeleteLocalInconsistency,
 		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 		a.OpenModal(modal)
 		return
 	}
 
 	// Confirm deletion
-	modal := NewConfirmModal(a.g, "Delete Migration",
-		fmt.Sprintf("Are you sure you want to delete this migration?\n\n%s\n\nThis action cannot be undone.", selected.Name),
+	modal := NewConfirmModal(a.g, a.Tr, a.Tr.ModalTitleDeleteMigration,
+		fmt.Sprintf(a.Tr.ModalMsgConfirmDeleteMigration, selected.Name),
 		func() {
 			a.CloseModal()
 			a.executeDeleteMigration(selected.Path, selected.Name)
@@ -1036,11 +1036,11 @@ func (a *App) executeDeleteMigration(path, name string) {
 	if err := os.RemoveAll(path); err != nil {
 		outputPanel, _ := a.panels[ViewOutputs].(*OutputPanel)
 		if outputPanel != nil {
-			outputPanel.LogActionRed("Delete Error", "Failed to delete migration: "+err.Error())
+			outputPanel.LogActionRed(a.Tr.ModalTitleDeleteError, fmt.Sprintf(a.Tr.LogMsgFailedDeleteMigration, err.Error()))
 		}
 
-		modal := NewMessageModal(a.g, "Delete Error",
-			"Failed to delete migration folder:",
+		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleDeleteError,
+			a.Tr.ModalMsgFailedDeleteFolder,
 			err.Error(),
 		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 		a.OpenModal(modal)
@@ -1050,14 +1050,14 @@ func (a *App) executeDeleteMigration(path, name string) {
 	// Success
 	outputPanel, _ := a.panels[ViewOutputs].(*OutputPanel)
 	if outputPanel != nil {
-		outputPanel.LogAction("Deleted", fmt.Sprintf("Migration '%s' deleted", name))
+		outputPanel.LogAction(a.Tr.LogActionDeleted, fmt.Sprintf(a.Tr.LogMsgMigrationDeleted, name))
 	}
 
 	// Refresh to update list
 	a.RefreshAll()
 
-	modal := NewMessageModal(a.g, "Deleted",
-		"Migration deleted successfully.",
+	modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleDeleted,
+		a.Tr.ModalMsgMigrationDeletedSuccess,
 	).WithStyle(MessageModalStyle{TitleColor: ColorGreen, BorderColor: ColorGreen})
 	a.OpenModal(modal)
 }
@@ -1078,20 +1078,20 @@ func (a *App) CopyMigrationInfo() {
 
 	items := []ListModalItem{
 		{
-			Label:       "Copy Name",
+			Label:       a.Tr.ListItemCopyName,
 			Description: selected.Name,
 			OnSelect: func() error {
 				a.CloseModal()
-				a.copyTextToClipboard(selected.Name, "Migration Name")
+				a.copyTextToClipboard(selected.Name, a.Tr.CopyLabelMigrationName)
 				return nil
 			},
 		},
 		{
-			Label:       "Copy Path",
+			Label:       a.Tr.ListItemCopyPath,
 			Description: selected.Path,
 			OnSelect: func() error {
 				a.CloseModal()
-				a.copyTextToClipboard(selected.Path, "Migration Path")
+				a.copyTextToClipboard(selected.Path, a.Tr.CopyLabelMigrationPath)
 				return nil
 			},
 		},
@@ -1100,17 +1100,17 @@ func (a *App) CopyMigrationInfo() {
 	// If it has a checksum, allow copying it
 	if selected.Checksum != "" {
 		items = append(items, ListModalItem{
-			Label:       "Copy Checksum",
+			Label:       a.Tr.ListItemCopyChecksum,
 			Description: selected.Checksum,
 			OnSelect: func() error {
 				a.CloseModal()
-				a.copyTextToClipboard(selected.Checksum, "Checksum")
+				a.copyTextToClipboard(selected.Checksum, a.Tr.CopyLabelChecksum)
 				return nil
 			},
 		})
 	}
 
-	modal := NewListModal(a.g, "Copy to Clipboard", items,
+	modal := NewListModal(a.g, a.Tr, a.Tr.ModalTitleCopyToClipboard, items,
 		func() {
 			a.CloseModal()
 		},
@@ -1121,8 +1121,8 @@ func (a *App) CopyMigrationInfo() {
 
 func (a *App) copyTextToClipboard(text, label string) {
 	if err := CopyToClipboard(text); err != nil {
-		modal := NewMessageModal(a.g, "Clipboard Error",
-			"Failed to copy to clipboard:",
+		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleClipboardError,
+			a.Tr.ModalMsgFailedCopyClipboard,
 			err.Error(),
 		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
 		a.OpenModal(modal)
@@ -1131,8 +1131,8 @@ func (a *App) copyTextToClipboard(text, label string) {
 
 	// Show toast/notification via modal for now
 	// Ideally we would have a toast system
-	modal := NewMessageModal(a.g, "Copied",
-		fmt.Sprintf("%s copied to clipboard!", label),
+	modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleCopied,
+		fmt.Sprintf(a.Tr.ModalMsgCopiedToClipboard, label),
 	).WithStyle(MessageModalStyle{TitleColor: ColorGreen, BorderColor: ColorGreen})
 	a.OpenModal(modal)
 }

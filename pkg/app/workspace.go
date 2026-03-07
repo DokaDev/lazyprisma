@@ -9,6 +9,7 @@ import (
 	"github.com/dokadev/lazyprisma/pkg/database"
 	_ "github.com/dokadev/lazyprisma/pkg/database/drivers" // Register database drivers
 	"github.com/dokadev/lazyprisma/pkg/git"
+	"github.com/dokadev/lazyprisma/pkg/i18n"
 	"github.com/dokadev/lazyprisma/pkg/node"
 	"github.com/dokadev/lazyprisma/pkg/prisma"
 	"github.com/jesseduffield/gocui"
@@ -17,6 +18,7 @@ import (
 
 type WorkspacePanel struct {
 	BasePanel
+	tr             *i18n.TranslationSet
 	nodeVersion    string
 	prismaVersion  string
 	prismaGlobal   bool
@@ -35,9 +37,10 @@ type WorkspacePanel struct {
 	originY        int    // Scroll position
 }
 
-func NewWorkspacePanel(g *gocui.Gui) *WorkspacePanel {
+func NewWorkspacePanel(g *gocui.Gui, tr *i18n.TranslationSet) *WorkspacePanel {
 	wp := &WorkspacePanel{
 		BasePanel:  NewBasePanel(ViewWorkspace, g),
+		tr:         tr,
 		showMasked: true, // Default to masked
 	}
 	wp.loadVersionInfo()
@@ -51,7 +54,7 @@ func (w *WorkspacePanel) loadVersionInfo() {
 	if nodeVer, err := node.GetVersion(); err == nil {
 		w.nodeVersion = nodeVer.Version
 	} else {
-		w.nodeVersion = "Not found"
+		w.nodeVersion = w.tr.WorkspaceVersionNotFound
 	}
 
 	// Prisma version
@@ -59,7 +62,7 @@ func (w *WorkspacePanel) loadVersionInfo() {
 		w.prismaVersion = prismaVer.Version
 		w.prismaGlobal = prismaVer.IsGlobal
 	} else {
-		w.prismaVersion = "Not found"
+		w.prismaVersion = w.tr.WorkspaceVersionNotFound
 		w.prismaGlobal = false
 	}
 
@@ -95,19 +98,19 @@ func (w *WorkspacePanel) buildDatabaseLines() []string {
 	// Build provider line with status
 	var providerLine string
 	if w.dbConnected {
-		statusStyled := Stylize("✓ Connected", Style{FgColor: ColorGreen, Bold: true})
-		providerLine = fmt.Sprintf("Provider: %s  %s", providerName, statusStyled)
+		statusStyled := Stylize(w.tr.WorkspaceConnected, Style{FgColor: ColorGreen, Bold: true})
+		providerLine = fmt.Sprintf(w.tr.WorkspaceProviderLine, providerName, statusStyled)
 	} else if w.dbError != "" {
 		if w.isConfigurationError() {
-			statusStyled := Stylize("✗ Not configured", Style{FgColor: ColorRed, Bold: true})
-			providerLine = fmt.Sprintf("Provider: %s  %s", providerName, statusStyled)
+			statusStyled := Stylize(w.tr.WorkspaceNotConfigured, Style{FgColor: ColorRed, Bold: true})
+			providerLine = fmt.Sprintf(w.tr.WorkspaceProviderLine, providerName, statusStyled)
 		} else {
-			statusStyled := Stylize("✗ Disconnected", Style{FgColor: ColorRed, Bold: true})
-			providerLine = fmt.Sprintf("Provider: %s  %s", providerName, statusStyled)
+			statusStyled := Stylize(w.tr.WorkspaceDisconnected, Style{FgColor: ColorRed, Bold: true})
+			providerLine = fmt.Sprintf(w.tr.WorkspaceProviderLine, providerName, statusStyled)
 		}
 	} else {
-		statusStyled := Stylize("✗ Disconnected", Style{FgColor: ColorRed, Bold: true})
-		providerLine = fmt.Sprintf("Provider: %s  %s", providerName, statusStyled)
+		statusStyled := Stylize(w.tr.WorkspaceDisconnected, Style{FgColor: ColorRed, Bold: true})
+		providerLine = fmt.Sprintf(w.tr.WorkspaceProviderLine, providerName, statusStyled)
 	}
 	lines = append(lines, providerLine)
 
@@ -120,26 +123,26 @@ func (w *WorkspacePanel) buildDatabaseLines() []string {
 
 		// Add hardcoded warning if applicable
 		if w.isHardcoded {
-			lines = append(lines, fmt.Sprintf("%s %s", displayURL, Red("(Hard coded)")))
+			lines = append(lines, fmt.Sprintf("%s %s", displayURL, Red(w.tr.WorkspaceHardcodedIndicator)))
 		} else {
 			lines = append(lines, displayURL)
 		}
 	} else if w.dbError != "" && w.isConfigurationError() {
 		// Only show error in URL field if it's a configuration issue
 		// Apply styling: bold+red env var name, red "not configured"
-		if w.envVarName != "" && strings.Contains(w.dbError, " not configured") {
-			styledError := Stylize(w.envVarName, Style{FgColor: ColorRed, Bold: true}) + Red(" not configured")
+		if w.envVarName != "" && strings.Contains(w.dbError, w.tr.WorkspaceNotConfiguredSuffix) {
+			styledError := Stylize(w.envVarName, Style{FgColor: ColorRed, Bold: true}) + Red(w.tr.WorkspaceNotConfiguredSuffix)
 			lines = append(lines, styledError)
 		} else {
 			lines = append(lines, Red(w.dbError))
 		}
 	} else {
-		lines = append(lines, "Not set")
+		lines = append(lines, w.tr.WorkspaceNotSet)
 	}
 
 	// Show detailed error message if disconnected (not configuration error)
 	if !w.dbConnected && w.dbError != "" && !w.isConfigurationError() {
-		lines = append(lines, Red(fmt.Sprintf("Error: %s", w.dbError)))
+		lines = append(lines, Red(fmt.Sprintf(w.tr.WorkspaceErrorFormat, w.dbError)))
 	}
 
 	return lines
@@ -180,7 +183,7 @@ func (w *WorkspacePanel) loadDatabaseInfo() {
 
 	cwd, err := os.Getwd()
 	if err != nil {
-		w.dbError = "Error getting working directory"
+		w.dbError = w.tr.WorkspaceErrorGetWorkingDirectory
 		return
 	}
 
@@ -200,13 +203,13 @@ func (w *WorkspacePanel) loadDatabaseInfo() {
 		// Categorize error message for better user understanding
 		errMsg := err.Error()
 		if strings.Contains(errMsg, "not found") {
-			w.dbError = "Schema file not found"
+			w.dbError = w.tr.WorkspaceErrorSchemaNotFound
 		} else if strings.Contains(errMsg, "incomplete") {
 			// Store plain text, styling will be applied in buildDatabaseLines()
 			if w.envVarName != "" {
-				w.dbError = w.envVarName + " not configured"
+				w.dbError = w.envVarName + w.tr.WorkspaceNotConfiguredSuffix
 			} else {
-				w.dbError = "DATABASE_URL not configured"
+				w.dbError = w.tr.WorkspaceDatabaseURLNotConfigured
 			}
 		} else {
 			w.dbError = errMsg
@@ -224,9 +227,9 @@ func (w *WorkspacePanel) loadDatabaseInfo() {
 	// Try to connect to database
 	if ds.URL == "" {
 		if w.envVarName != "" {
-			w.dbError = w.envVarName + " not configured"
+			w.dbError = w.envVarName + w.tr.WorkspaceNotConfiguredSuffix
 		} else {
-			w.dbError = "No DATABASE_URL"
+			w.dbError = w.tr.WorkspaceNoDatabaseURL
 		}
 		return
 	}
@@ -255,7 +258,7 @@ func (w *WorkspacePanel) Draw(dim boxlayout.Dimensions) error {
 		return err
 	}
 
-	w.SetupView(v, "Workspace")
+	w.SetupView(v, w.tr.PanelTitleWorkspace)
 	w.v = v
 	v.Wrap = true // Enable word wrap
 
@@ -265,9 +268,9 @@ func (w *WorkspacePanel) Draw(dim boxlayout.Dimensions) error {
 	// Node and Prisma version on one line
 	nodeVersionStyled := Stylize(w.nodeVersion, Style{FgColor: ColorYellow, Bold: true})
 	prismaVersionStyled := Stylize(w.prismaVersion, Style{FgColor: ColorYellow, Bold: true})
-	versionLine := fmt.Sprintf("Node: %s | Prisma: %s", nodeVersionStyled, prismaVersionStyled)
+	versionLine := fmt.Sprintf(w.tr.WorkspaceVersionLine, nodeVersionStyled, prismaVersionStyled)
 	if w.prismaGlobal {
-		versionLine += " " + Orange("(Global)")
+		versionLine += " " + Orange(w.tr.WorkspacePrismaGlobalIndicator)
 	}
 	lines = append(lines, versionLine)
 
@@ -275,17 +278,17 @@ func (w *WorkspacePanel) Draw(dim boxlayout.Dimensions) error {
 	lines = append(lines, "")
 	if w.isGitRepo {
 		// Git line with optional schema modified indicator
-		gitLine := fmt.Sprintf("Git: %s", w.gitRepoName)
+		gitLine := fmt.Sprintf(w.tr.WorkspaceGitLine, w.gitRepoName)
 		if w.schemaModified {
-			gitLine += " " + Orange("(schema modified)")
+			gitLine += " " + Orange(w.tr.WorkspaceSchemaModifiedIndicator)
 		}
 		lines = append(lines, gitLine)
 
 		// Branch on separate line
 		branchStyled := Stylize(w.gitBranch, Style{FgColor: ColorYellow, Bold: true})
-		lines = append(lines, fmt.Sprintf("(%s)", branchStyled))
+		lines = append(lines, fmt.Sprintf(w.tr.WorkspaceBranchFormat, branchStyled))
 	} else {
-		lines = append(lines, "Git: Not a git repository")
+		lines = append(lines, w.tr.WorkspaceNotGitRepository)
 	}
 
 	lines = append(lines, "")

@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/dokadev/lazyprisma/pkg/commands"
+	"github.com/dokadev/lazyprisma/pkg/common"
+	"github.com/dokadev/lazyprisma/pkg/i18n"
 	"github.com/jesseduffield/gocui"
 )
 
@@ -18,6 +20,8 @@ var spinnerFrames = []rune{'|', '/', '-', '\\'}
 type App struct {
 	g            *gocui.Gui
 	config       AppConfig
+	Common       *common.Common
+	Tr           *i18n.TranslationSet
 	panels       map[string]Panel
 	focusOrder   []string
 	currentFocus int
@@ -50,9 +54,13 @@ func NewApp(config AppConfig) (*App, error) {
 		return nil, err
 	}
 
+	cmn := common.NewCommon("en")
+
 	app := &App{
 		g:             g,
 		config:        config,
+		Common:        cmn,
+		Tr:            cmn.Tr,
 		panels:        make(map[string]Panel),
 		focusOrder:    []string{ViewWorkspace, ViewMigrations, ViewDetails, ViewOutputs},
 		currentFocus:  0,
@@ -171,12 +179,12 @@ func (a *App) logCommandBlocked(commandName string) {
 				runningTask = val.(string)
 			}
 
-			message := fmt.Sprintf("Cannot execute '%s'", commandName)
+			message := fmt.Sprintf(a.Tr.ErrorCannotExecuteCommand, commandName)
 			if runningTask != "" {
-				message += fmt.Sprintf(" ('%s' is currently running)", runningTask)
+				message += fmt.Sprintf(a.Tr.ErrorCommandCurrentlyRunning, runningTask)
 			}
 
-			outputPanel.LogActionRed("Operation Blocked", message)
+			outputPanel.LogActionRed(a.Tr.ErrorOperationBlocked, message)
 		}
 		return nil
 	})
@@ -437,7 +445,7 @@ func (a *App) RefreshAll(onComplete ...func()) bool {
 		a.g.Update(func(g *gocui.Gui) error {
 			// Add refresh notification to output panel
 			if outputPanel, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
-				outputPanel.LogAction("Refresh", "All panels have been refreshed")
+				outputPanel.LogAction(a.Tr.ActionRefresh, a.Tr.SuccessAllPanelsRefreshed)
 			}
 
 			// Execute callbacks

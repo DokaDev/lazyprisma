@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/dokadev/lazyprisma/pkg/app"
+	"github.com/dokadev/lazyprisma/pkg/i18n"
 	"github.com/dokadev/lazyprisma/pkg/prisma"
 
 	// Register database drivers
@@ -17,10 +18,12 @@ const (
 )
 
 func main() {
+	tr := i18n.NewTranslationSet("en")
+
 	// Handle version flag
 	if len(os.Args) > 1 {
 		if os.Args[1] == "--version" || os.Args[1] == "-v" {
-			fmt.Printf("LazyPrisma %s (%s)\n", Version, Developer)
+			fmt.Printf(tr.VersionOutput, Version, Developer)
 			os.Exit(0)
 		}
 	}
@@ -28,15 +31,15 @@ func main() {
 	// Check if current directory is a Prisma workspace
 	cwd, err := os.Getwd()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: Failed to get current directory: %v\n", err)
+		fmt.Fprintf(os.Stderr, tr.ErrorFailedGetCurrentDir, err)
 		os.Exit(1)
 	}
 
 	if !prisma.IsWorkspace(cwd) {
-		fmt.Fprintf(os.Stderr, "Error: Current directory is not a Prisma workspace.\n")
-		fmt.Fprintf(os.Stderr, "\nExpected one of:\n")
-		fmt.Fprintf(os.Stderr, "  - prisma.config.ts (Prisma v7.0+)\n")
-		fmt.Fprintf(os.Stderr, "  - prisma/schema.prisma (Prisma < v7.0)\n")
+		fmt.Fprintf(os.Stderr, tr.ErrorNotPrismaWorkspace)
+		fmt.Fprintf(os.Stderr, tr.ErrorExpectedOneOf)
+		fmt.Fprintf(os.Stderr, tr.ErrorExpectedConfigV7Plus)
+		fmt.Fprintf(os.Stderr, tr.ErrorExpectedSchemaV7Minus)
 		os.Exit(1)
 	}
 
@@ -48,15 +51,15 @@ func main() {
 		Developer: Developer,
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to create app: %v\n", err)
+		fmt.Fprintf(os.Stderr, tr.ErrorFailedCreateApp, err)
 		os.Exit(1)
 	}
 
 	// 패널 생성 및 등록
-	workspace := app.NewWorkspacePanel(tuiApp.GetGui())
-	migrations := app.NewMigrationsPanel(tuiApp.GetGui())
-	details := app.NewDetailsPanel(tuiApp.GetGui())
-	output := app.NewOutputPanel(tuiApp.GetGui())
+	workspace := app.NewWorkspacePanel(tuiApp.GetGui(), tr)
+	migrations := app.NewMigrationsPanel(tuiApp.GetGui(), tr)
+	details := app.NewDetailsPanel(tuiApp.GetGui(), tr)
+	output := app.NewOutputPanel(tuiApp.GetGui(), tr)
 	statusbar := app.NewStatusBar(tuiApp.GetGui(), tuiApp)
 
 	// Connect panels
@@ -71,7 +74,7 @@ func main() {
 
 	// 키바인딩 등록
 	if err := tuiApp.RegisterKeybindings(); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to register keybindings: %v\n", err)
+		fmt.Fprintf(os.Stderr, tr.ErrorFailedRegisterKeybindings, err)
 		os.Exit(1)
 	}
 
@@ -80,7 +83,7 @@ func main() {
 
 	// 실행
 	if err := tuiApp.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "App error: %v\n", err)
+		fmt.Fprintf(os.Stderr, tr.ErrorAppRuntime, err)
 		os.Exit(1)
 	}
 }

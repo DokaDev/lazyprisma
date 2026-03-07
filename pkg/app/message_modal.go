@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/dokadev/lazyprisma/pkg/i18n"
 	"github.com/jesseduffield/gocui"
 	"github.com/jesseduffield/lazycore/pkg/boxlayout"
 )
@@ -17,6 +18,7 @@ type MessageModalStyle struct {
 // MessageModal displays a message with title and content
 type MessageModal struct {
 	g            *gocui.Gui
+	tr           *i18n.TranslationSet
 	title        string
 	contentLines []string // Original content lines
 	lines        []string // Wrapped content lines
@@ -26,9 +28,10 @@ type MessageModal struct {
 }
 
 // NewMessageModal creates a new message modal
-func NewMessageModal(g *gocui.Gui, title string, lines ...string) *MessageModal {
+func NewMessageModal(g *gocui.Gui, tr *i18n.TranslationSet, title string, lines ...string) *MessageModal {
 	return &MessageModal{
 		g:            g,
+		tr:           tr,
 		title:        title,
 		contentLines: lines,
 		style:        MessageModalStyle{}, // Default style
@@ -93,7 +96,7 @@ func (m *MessageModal) Draw(dim boxlayout.Dimensions) error {
 	v.Frame = true
 	v.FrameRunes = []rune{'─', '│', '╭', '╮', '╰', '╯'}
 	v.Title = " " + m.title + " "
-	v.Footer = " [Enter/q/ESC] Close "
+	v.Footer = m.tr.ModalFooterMessageClose
 
 	// Apply frame color (border) if set
 	if m.style.BorderColor != ColorDefault {
