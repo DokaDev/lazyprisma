@@ -6,6 +6,7 @@ import (
 
 	"github.com/dokadev/lazyprisma/pkg/app"
 	"github.com/dokadev/lazyprisma/pkg/config"
+	"github.com/dokadev/lazyprisma/pkg/gui/context"
 	"github.com/dokadev/lazyprisma/pkg/i18n"
 	"github.com/dokadev/lazyprisma/pkg/prisma"
 
@@ -59,19 +60,55 @@ func main() {
 	}
 
 	// 패널 생성 및 등록
-	workspace := app.NewWorkspacePanel(tuiApp.GetGui(), tr)
-	migrations := app.NewMigrationsPanel(tuiApp.GetGui(), tr)
-	details := app.NewDetailsPanel(tuiApp.GetGui(), tr)
-	output := app.NewOutputPanel(tuiApp.GetGui(), tr)
-	statusbar := app.NewStatusBar(tuiApp.GetGui(), tuiApp)
+	workspace := context.NewWorkspaceContext(context.WorkspaceContextOpts{
+		Gui:      tuiApp.GetGui(),
+		Tr:       tr,
+		ViewName: "workspace",
+	})
+	migrationsCtx := context.NewMigrationsContext(context.MigrationsContextOpts{
+		Gui:      tuiApp.GetGui(),
+		Tr:       tr,
+		ViewName: "migrations",
+	})
+	detailsCtx := context.NewDetailsContext(context.DetailsContextOpts{
+		Gui:      tuiApp.GetGui(),
+		Tr:       tr,
+		ViewName: "details",
+	})
+	output := context.NewOutputContext(context.OutputContextOpts{
+		Gui:      tuiApp.GetGui(),
+		Tr:       tr,
+		ViewName: "outputs",
+	})
+	statusbar := context.NewStatusBarContext(context.StatusBarContextOpts{
+		Gui:      tuiApp.GetGui(),
+		Tr:       tr,
+		ViewName: "statusbar",
+		State:    tuiApp.StatusBarState(),
+		Config: context.StatusBarConfig{
+			Developer: Developer,
+			Version:   Version,
+		},
+	})
 
-	// Connect panels
-	migrations.SetDetailsPanel(details)
-	details.SetApp(tuiApp)
+	// Wire callbacks (replaces old bidirectional coupling)
+	migrationsCtx.SetOnSelectionChanged(func(mig *prisma.Migration, tab string) {
+		detailsCtx.UpdateFromMigration(mig, tab)
+	})
+	migrationsCtx.SetModalCallbacks(tuiApp.HasActiveModal, func(viewID string) {
+		tuiApp.HandlePanelClick(viewID)
+	})
+	detailsCtx.SetModalCallbacks(tuiApp.HasActiveModal, func(viewID string) {
+		tuiApp.HandlePanelClick(viewID)
+	})
+
+	// Load action-needed data for details context
+	detailsCtx.SetActionNeededMigrations(collectActionNeededMigrations(migrationsCtx.GetCategory()))
+	detailsCtx.LoadActionNeededData()
 
 	tuiApp.RegisterPanel(workspace)
-	tuiApp.RegisterPanel(migrations)
-	tuiApp.RegisterPanel(details)
+	tuiApp.RegisterPanel(migrationsCtx)
+	tuiApp.RegisterPanel(detailsCtx)
 	tuiApp.RegisterPanel(output)
 	tuiApp.RegisterPanel(statusbar)
 
@@ -89,4 +126,16 @@ func main() {
 		fmt.Fprintf(os.Stderr, tr.ErrorAppRuntime, err)
 		os.Exit(1)
 	}
+}
+
+// collectActionNeededMigrations extracts migrations that need action (Empty or Checksum Mismatch)
+// from the Local category.
+func collectActionNeededMigrations(cat prisma.MigrationCategory) []prisma.Migration {
+	var result []prisma.Migration
+	for _, mig := range cat.Local {
+		if mig.IsEmpty || mig.ChecksumMismatch {
+			result = append(result, mig)
+		}
+	}
+	return result
 }

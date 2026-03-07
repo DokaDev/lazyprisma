@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/dokadev/lazyprisma/pkg/commands"
+	"github.com/dokadev/lazyprisma/pkg/gui/context"
 	"github.com/dokadev/lazyprisma/pkg/prisma"
 	"github.com/jesseduffield/gocui"
 )
@@ -188,7 +189,7 @@ func (a *App) TestPing() {
 		return
 	}
 
-	outputPanel, ok := a.panels[ViewOutputs].(*OutputPanel)
+	outputPanel, ok := a.panels[ViewOutputs].(*context.OutputContext)
 	if !ok {
 		a.finishCommand() // Clean up if panel not found
 		return
@@ -206,7 +207,7 @@ func (a *App) TestPing() {
 		OnStdout(func(line string) {
 			// Update UI on main thread
 			a.g.Update(func(g *gocui.Gui) error {
-				if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+				if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
 					out.AppendOutput("  " + line)
 				}
 				return nil
@@ -215,7 +216,7 @@ func (a *App) TestPing() {
 		OnStderr(func(line string) {
 			// Update UI on main thread
 			a.g.Update(func(g *gocui.Gui) error {
-				if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+				if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
 					out.AppendOutput("  [ERROR] " + line)
 				}
 				return nil
@@ -226,7 +227,7 @@ func (a *App) TestPing() {
 
 			// Update UI on main thread
 			a.g.Update(func(g *gocui.Gui) error {
-				if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+				if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
 					if exitCode == 0 {
 						out.LogAction("Network Test Complete", "Ping successful")
 					} else {
@@ -241,7 +242,7 @@ func (a *App) TestPing() {
 
 			// Update UI on main thread
 			a.g.Update(func(g *gocui.Gui) error {
-				if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+				if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
 					out.LogAction("Network Test Error", err.Error())
 				}
 				return nil

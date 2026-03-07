@@ -11,9 +11,9 @@ type Common struct {
 	Tr *i18n.TranslationSet
 }
 
-// NewCommon creates a new Common instance with the given language.
-func NewCommon(language string) *Common {
+// NewCommon creates a new Common instance with the given TranslationSet.
+func NewCommon(tr *i18n.TranslationSet) *Common {
 	return &Common{
-		Tr: i18n.NewTranslationSet(language),
+		Tr: tr,
 	}
 }

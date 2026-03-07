@@ -1,6 +1,9 @@
 package app
 
-import "github.com/jesseduffield/gocui"
+import (
+	"github.com/dokadev/lazyprisma/pkg/gui/context"
+	"github.com/jesseduffield/gocui"
+)
 
 func (a *App) RegisterKeybindings() error {
 	// Quit or close modal (lowercase q)
@@ -56,9 +59,9 @@ func (a *App) RegisterKeybindings() error {
 		}
 		// Check if current panel supports tabs
 		if panel := a.GetCurrentPanel(); panel != nil {
-			if migrationsPanel, ok := panel.(*MigrationsPanel); ok {
+			if migrationsPanel, ok := panel.(*context.MigrationsContext); ok {
 				migrationsPanel.NextTab()
-			} else if detailsPanel, ok := panel.(*DetailsPanel); ok {
+			} else if detailsPanel, ok := panel.(*context.DetailsContext); ok {
 				detailsPanel.NextTab()
 			}
 		}
@@ -74,9 +77,9 @@ func (a *App) RegisterKeybindings() error {
 		}
 		// Check if current panel supports tabs
 		if panel := a.GetCurrentPanel(); panel != nil {
-			if migrationsPanel, ok := panel.(*MigrationsPanel); ok {
+			if migrationsPanel, ok := panel.(*context.MigrationsContext); ok {
 				migrationsPanel.PrevTab()
-			} else if detailsPanel, ok := panel.(*DetailsPanel); ok {
+			} else if detailsPanel, ok := panel.(*context.DetailsContext); ok {
 				detailsPanel.PrevTab()
 			}
 		}
@@ -114,13 +117,13 @@ func (a *App) RegisterKeybindings() error {
 		// Handle different panel types
 		if panel := a.GetCurrentPanel(); panel != nil {
 			switch p := panel.(type) {
-			case *MigrationsPanel:
+			case *context.MigrationsContext:
 				p.SelectPrev()
-			case *WorkspacePanel:
+			case *context.WorkspaceContext:
 				p.ScrollUp()
-			case *DetailsPanel:
+			case *context.DetailsContext:
 				p.ScrollUp()
-			case *OutputPanel:
+			case *context.OutputContext:
 				p.ScrollUp()
 			}
 		}
@@ -136,13 +139,13 @@ func (a *App) RegisterKeybindings() error {
 		// Handle different panel types
 		if panel := a.GetCurrentPanel(); panel != nil {
 			switch p := panel.(type) {
-			case *MigrationsPanel:
+			case *context.MigrationsContext:
 				p.SelectNext()
-			case *WorkspacePanel:
+			case *context.WorkspaceContext:
 				p.ScrollDown()
-			case *DetailsPanel:
+			case *context.DetailsContext:
 				p.ScrollDown()
-			case *OutputPanel:
+			case *context.OutputContext:
 				p.ScrollDown()
 			}
 		}
@@ -175,13 +178,13 @@ func (a *App) RegisterKeybindings() error {
 		// Handle different panel types
 		if panel := a.GetCurrentPanel(); panel != nil {
 			switch p := panel.(type) {
-			case *MigrationsPanel:
+			case *context.MigrationsContext:
 				p.ScrollToTop()
-			case *WorkspacePanel:
+			case *context.WorkspaceContext:
 				p.ScrollToTop()
-			case *DetailsPanel:
+			case *context.DetailsContext:
 				p.ScrollToTop()
-			case *OutputPanel:
+			case *context.OutputContext:
 				p.ScrollToTop()
 			}
 		}
@@ -198,13 +201,13 @@ func (a *App) RegisterKeybindings() error {
 		// Handle different panel types
 		if panel := a.GetCurrentPanel(); panel != nil {
 			switch p := panel.(type) {
-			case *MigrationsPanel:
+			case *context.MigrationsContext:
 				p.ScrollToBottom()
-			case *WorkspacePanel:
+			case *context.WorkspaceContext:
 				p.ScrollToBottom()
-			case *DetailsPanel:
+			case *context.DetailsContext:
 				p.ScrollToBottom()
-			case *OutputPanel:
+			case *context.OutputContext:
 				p.ScrollToBottom()
 			}
 		}

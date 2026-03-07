@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/dokadev/lazyprisma/pkg/commands"
+	"github.com/dokadev/lazyprisma/pkg/gui/context"
 	"github.com/dokadev/lazyprisma/pkg/prisma"
 	"github.com/jesseduffield/gocui"
 )
@@ -25,7 +26,7 @@ func (a *App) MigrateDeploy() {
 		a.refreshPanels()
 
 		// 2. Check DB connection
-		migrationsPanel, ok := a.panels[ViewMigrations].(*MigrationsPanel)
+		migrationsPanel, ok := a.panels[ViewMigrations].(*context.MigrationsContext)
 		if !ok {
 			a.finishCommand()
 			a.g.Update(func(g *gocui.Gui) error {
@@ -39,7 +40,7 @@ func (a *App) MigrateDeploy() {
 		}
 
 		// Check if DB is connected
-		if !migrationsPanel.dbConnected {
+		if !migrationsPanel.IsDBConnected() {
 			a.finishCommand()
 			a.g.Update(func(g *gocui.Gui) error {
 				modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleDBConnectionRequired,
@@ -52,7 +53,7 @@ func (a *App) MigrateDeploy() {
 			return
 		}
 
-		outputPanel, ok := a.panels[ViewOutputs].(*OutputPanel)
+		outputPanel, ok := a.panels[ViewOutputs].(*context.OutputContext)
 		if !ok {
 			a.finishCommand() // Clean up if panel not found
 			return
@@ -90,7 +91,7 @@ func (a *App) MigrateDeploy() {
 			OnStdout(func(line string) {
 				// Update UI on main thread
 				a.g.Update(func(g *gocui.Gui) error {
-					if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+					if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
 						out.AppendOutput("  " + line)
 					}
 					return nil
@@ -99,7 +100,7 @@ func (a *App) MigrateDeploy() {
 			OnStderr(func(line string) {
 				// Update UI on main thread
 				a.g.Update(func(g *gocui.Gui) error {
-					if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+					if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
 						out.AppendOutput("  " + line)
 					}
 					return nil
@@ -109,7 +110,7 @@ func (a *App) MigrateDeploy() {
 				// Update UI on main thread
 				a.g.Update(func(g *gocui.Gui) error {
 					a.finishCommand() // Finish command
-					if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+					if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
 						if exitCode == 0 {
 							out.LogAction(a.Tr.LogActionMigrateDeployComplete, a.Tr.LogMsgMigrationsAppliedSuccess)
 							// Refresh all panels to show updated migration status
@@ -137,7 +138,7 @@ func (a *App) MigrateDeploy() {
 				// Update UI on main thread
 				a.g.Update(func(g *gocui.Gui) error {
 					a.finishCommand() // Finish command
-					if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+					if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
 						out.LogAction(a.Tr.LogActionMigrateDeployFailed, err.Error())
 						modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleMigrateDeployError,
 							a.Tr.ModalMsgFailedRunMigrateDeploy,
@@ -206,7 +207,7 @@ func (a *App) executeCreateMigration(migrationName string) {
 		return
 	}
 
-	outputPanel, ok := a.panels[ViewOutputs].(*OutputPanel)
+	outputPanel, ok := a.panels[ViewOutputs].(*context.OutputContext)
 	if !ok {
 		a.finishCommand() // Clean up if panel not found
 		return
@@ -239,7 +240,7 @@ func (a *App) executeCreateMigration(migrationName string) {
 		OnStdout(func(line string) {
 			// Update UI on main thread
 			a.g.Update(func(g *gocui.Gui) error {
-				if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+				if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
 					out.AppendOutput("  " + line)
 				}
 				return nil
@@ -248,7 +249,7 @@ func (a *App) executeCreateMigration(migrationName string) {
 		OnStderr(func(line string) {
 			// Update UI on main thread
 			a.g.Update(func(g *gocui.Gui) error {
-				if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+				if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
 					out.AppendOutput("  " + line)
 				}
 				return nil
@@ -261,7 +262,7 @@ func (a *App) executeCreateMigration(migrationName string) {
 				// Refresh all panels to show the new migration
 				a.RefreshAll()
 
-				if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+				if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
 					if exitCode == 0 {
 						out.LogAction(a.Tr.LogActionMigrateComplete, a.Tr.LogMsgMigrationCreatedSuccess)
 						// Show success modal
@@ -286,7 +287,7 @@ func (a *App) executeCreateMigration(migrationName string) {
 			// Update UI on main thread
 			a.g.Update(func(g *gocui.Gui) error {
 				a.finishCommand() // Finish command
-				if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+				if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
 					out.LogAction(a.Tr.LogActionMigrationError, err.Error())
 					modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleMigrationError,
 						a.Tr.ModalMsgFailedRunMigrateDeploy,
@@ -315,7 +316,7 @@ func (a *App) SchemaDiffMigration() {
 	// 1. Refresh first (with callback to ensure data is loaded before checking)
 	started := a.RefreshAll(func() {
 		// 2. Check DB connection
-		migrationsPanel, ok := a.panels[ViewMigrations].(*MigrationsPanel)
+		migrationsPanel, ok := a.panels[ViewMigrations].(*context.MigrationsContext)
 		if !ok {
 			modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleError,
 				a.Tr.ErrorFailedAccessMigrationsPanel,
@@ -325,7 +326,7 @@ func (a *App) SchemaDiffMigration() {
 		}
 
 		// Check if DB is connected
-		if !migrationsPanel.dbConnected {
+		if !migrationsPanel.IsDBConnected() {
 			modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleDBConnectionRequired,
 				a.Tr.ErrorNoDBConnectionDetected,
 				a.Tr.ErrorEnsureDBAccessible,
@@ -335,7 +336,7 @@ func (a *App) SchemaDiffMigration() {
 		}
 
 		// 3. Check for DB-Only migrations
-		if len(migrationsPanel.category.DBOnly) > 0 {
+		if len(migrationsPanel.GetCategory().DBOnly) > 0 {
 			modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleDBOnlyMigrationsDetected,
 				a.Tr.ModalMsgCannotCreateWithDBOnly,
 				a.Tr.ModalMsgResolveDBOnlyFirst,
@@ -345,7 +346,7 @@ func (a *App) SchemaDiffMigration() {
 		}
 
 		// 4. Check for Checksum Mismatch
-		for _, m := range migrationsPanel.category.Local {
+		for _, m := range migrationsPanel.GetCategory().Local {
 			if m.ChecksumMismatch {
 				modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleChecksumMismatchDetected,
 					a.Tr.ModalMsgCannotCreateWithMismatch,
@@ -357,9 +358,9 @@ func (a *App) SchemaDiffMigration() {
 		}
 
 		// 5. Check for Pending migrations
-		if len(migrationsPanel.category.Pending) > 0 {
+		if len(migrationsPanel.GetCategory().Pending) > 0 {
 			// Check if any pending migration is empty
-			for _, m := range migrationsPanel.category.Pending {
+			for _, m := range migrationsPanel.GetCategory().Pending {
 				if m.IsEmpty {
 					modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleEmptyPendingDetected,
 						a.Tr.ModalMsgCannotCreateWithEmpty,
@@ -528,7 +529,7 @@ func (a *App) Generate() {
 		return
 	}
 
-	outputPanel, ok := a.panels[ViewOutputs].(*OutputPanel)
+	outputPanel, ok := a.panels[ViewOutputs].(*context.OutputContext)
 	if !ok {
 		a.finishCommand() // Clean up if panel not found
 		return
@@ -560,7 +561,7 @@ func (a *App) Generate() {
 		OnStdout(func(line string) {
 			// Update UI on main thread
 			a.g.Update(func(g *gocui.Gui) error {
-				if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+				if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
 					out.AppendOutput("  " + line)
 				}
 				return nil
@@ -569,7 +570,7 @@ func (a *App) Generate() {
 		OnStderr(func(line string) {
 			// Update UI on main thread
 			a.g.Update(func(g *gocui.Gui) error {
-				if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+				if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
 					out.AppendOutput("  " + line)
 				}
 				return nil
@@ -578,7 +579,7 @@ func (a *App) Generate() {
 		OnComplete(func(exitCode int) {
 			// Update UI on main thread
 			a.g.Update(func(g *gocui.Gui) error {
-				if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+				if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
 					if exitCode == 0 {
 						a.finishCommand() // Finish immediately on success
 						out.LogAction(a.Tr.LogActionGenerateComplete, a.Tr.LogMsgPrismaClientGeneratedSuccess)
@@ -599,7 +600,7 @@ func (a *App) Generate() {
 							a.g.Update(func(g *gocui.Gui) error {
 								a.finishCommand() // Finish after validate completes
 
-								if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+								if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
 									if err == nil && !validateResult.Valid {
 										// Schema has validation errors - show them
 										out.LogAction(a.Tr.LogActionSchemaValidationFailed, fmt.Sprintf(a.Tr.LogMsgFoundSchemaErrors, len(validateResult.Errors)))
@@ -630,7 +631,7 @@ func (a *App) Generate() {
 		OnError(func(err error) {
 			// Update UI on main thread
 			a.g.Update(func(g *gocui.Gui) error {
-				if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+				if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
 					// Check if it's an exit status error (command ran but failed)
 					if strings.Contains(err.Error(), "exit status") {
 						// Failed - run validate to check schema (keep spinner running)
@@ -644,7 +645,7 @@ func (a *App) Generate() {
 							a.g.Update(func(g *gocui.Gui) error {
 								a.finishCommand() // Finish after validate completes
 
-								if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+								if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
 									if validateErr == nil && !validateResult.Valid {
 										// Schema has validation errors - show them
 										out.LogAction(a.Tr.LogActionSchemaValidationFailed, fmt.Sprintf(a.Tr.LogMsgFoundSchemaErrors, len(validateResult.Errors)))
@@ -697,7 +698,7 @@ func (a *App) Generate() {
 // MigrateResolve resolves a failed migration
 func (a *App) MigrateResolve() {
 	// Get migrations panel
-	migrationsPanel, ok := a.panels[ViewMigrations].(*MigrationsPanel)
+	migrationsPanel, ok := a.panels[ViewMigrations].(*context.MigrationsContext)
 	if !ok {
 		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleError,
 			a.Tr.ErrorFailedAccessMigrationsPanel,
@@ -765,7 +766,7 @@ func (a *App) executeResolve(migrationName string, action string) {
 		return
 	}
 
-	outputPanel, ok := a.panels[ViewOutputs].(*OutputPanel)
+	outputPanel, ok := a.panels[ViewOutputs].(*context.OutputContext)
 	if !ok {
 		a.finishCommand() // Clean up if panel not found
 		return
@@ -801,7 +802,7 @@ func (a *App) executeResolve(migrationName string, action string) {
 		OnStdout(func(line string) {
 			// Update UI on main thread
 			a.g.Update(func(g *gocui.Gui) error {
-				if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+				if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
 					out.AppendOutput("  " + line)
 				}
 				return nil
@@ -810,7 +811,7 @@ func (a *App) executeResolve(migrationName string, action string) {
 		OnStderr(func(line string) {
 			// Update UI on main thread
 			a.g.Update(func(g *gocui.Gui) error {
-				if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+				if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
 					out.AppendOutput("  " + line)
 				}
 				return nil
@@ -822,7 +823,7 @@ func (a *App) executeResolve(migrationName string, action string) {
 				a.finishCommand() // Finish command
 				// Refresh all panels to show updated migration status
 				a.RefreshAll()
-				if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+				if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
 					if exitCode == 0 {
 						out.LogAction(a.Tr.LogActionMigrateResolveComplete, fmt.Sprintf(a.Tr.LogMsgMigrationMarked, actionLabel))
 						// Show success modal
@@ -846,7 +847,7 @@ func (a *App) executeResolve(migrationName string, action string) {
 			// Update UI on main thread
 			a.g.Update(func(g *gocui.Gui) error {
 				a.finishCommand() // Finish command
-				if out, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+				if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
 					out.LogAction(a.Tr.LogActionMigrateResolveError, err.Error())
 					modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleMigrateResolveError,
 						a.Tr.ModalMsgFailedRunMigrateResolve,
@@ -872,7 +873,7 @@ func (a *App) executeResolve(migrationName string, action string) {
 
 // Studio toggles Prisma Studio
 func (a *App) Studio() {
-	outputPanel, ok := a.panels[ViewOutputs].(*OutputPanel)
+	outputPanel, ok := a.panels[ViewOutputs].(*context.OutputContext)
 	if !ok {
 		return
 	}
@@ -981,7 +982,7 @@ func (a *App) Studio() {
 // DeleteMigration deletes a pending migration
 func (a *App) DeleteMigration() {
 	// Get migrations panel
-	migrationsPanel, ok := a.panels[ViewMigrations].(*MigrationsPanel)
+	migrationsPanel, ok := a.panels[ViewMigrations].(*context.MigrationsContext)
 	if !ok {
 		return
 	}
@@ -1008,7 +1009,7 @@ func (a *App) DeleteMigration() {
 
 	// Validate: Can only delete pending migrations (not applied to DB)
 	// Exception: If DB is not connected, we assume it's safe to delete local files (user responsibility)
-	if migrationsPanel.dbConnected && selected.AppliedAt != nil {
+	if migrationsPanel.IsDBConnected() && selected.AppliedAt != nil {
 		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleCannotDelete,
 			a.Tr.ModalMsgMigrationAlreadyApplied,
 			a.Tr.ModalMsgDeleteLocalInconsistency,
@@ -1034,7 +1035,7 @@ func (a *App) DeleteMigration() {
 // executeDeleteMigration performs the actual deletion
 func (a *App) executeDeleteMigration(path, name string) {
 	if err := os.RemoveAll(path); err != nil {
-		outputPanel, _ := a.panels[ViewOutputs].(*OutputPanel)
+		outputPanel, _ := a.panels[ViewOutputs].(*context.OutputContext)
 		if outputPanel != nil {
 			outputPanel.LogActionRed(a.Tr.ModalTitleDeleteError, fmt.Sprintf(a.Tr.LogMsgFailedDeleteMigration, err.Error()))
 		}
@@ -1048,7 +1049,7 @@ func (a *App) executeDeleteMigration(path, name string) {
 	}
 
 	// Success
-	outputPanel, _ := a.panels[ViewOutputs].(*OutputPanel)
+	outputPanel, _ := a.panels[ViewOutputs].(*context.OutputContext)
 	if outputPanel != nil {
 		outputPanel.LogAction(a.Tr.LogActionDeleted, fmt.Sprintf(a.Tr.LogMsgMigrationDeleted, name))
 	}
@@ -1065,7 +1066,7 @@ func (a *App) executeDeleteMigration(path, name string) {
 // CopyMigrationInfo copies migration info to clipboard
 func (a *App) CopyMigrationInfo() {
 	// Get migrations panel
-	migrationsPanel, ok := a.panels[ViewMigrations].(*MigrationsPanel)
+	migrationsPanel, ok := a.panels[ViewMigrations].(*context.MigrationsContext)
 	if !ok {
 		return
 	}
