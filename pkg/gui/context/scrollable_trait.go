@@ -36,10 +36,16 @@ func (self *ScrollableTrait) ScrollUp() {
 	}
 }
 
-// ScrollDown scrolls the view down by 1 line.
-// AdjustScroll should be called during render to clamp within bounds.
+// ScrollDown scrolls the view down by 1 line, clamping to the maximum scrollable position.
 func (self *ScrollableTrait) ScrollDown() {
-	self.originY++
+	if self.view == nil {
+		return
+	}
+
+	maxOrigin := self.maxOrigin()
+	if self.originY < maxOrigin {
+		self.originY++
+	}
 }
 
 // ScrollUpByWheel scrolls the view up by the wheel increment.
