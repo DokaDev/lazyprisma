@@ -3,40 +3,12 @@ package context
 import (
 	"fmt"
 
+	"github.com/dokadev/lazyprisma/pkg/gui/style"
 	"github.com/dokadev/lazyprisma/pkg/gui/types"
 	"github.com/dokadev/lazyprisma/pkg/i18n"
 	"github.com/jesseduffield/gocui"
 	"github.com/jesseduffield/lazycore/pkg/boxlayout"
 )
-
-// ANSI styling helpers for status bar (self-contained to avoid circular import with app)
-func statusCyan(text string) string {
-	if text == "" {
-		return text
-	}
-	return fmt.Sprintf("\x1b[36m%s\x1b[0m", text)
-}
-
-func statusGray(text string) string {
-	if text == "" {
-		return text
-	}
-	return fmt.Sprintf("\x1b[38;5;240m%s\x1b[0m", text)
-}
-
-func statusGreen(text string) string {
-	if text == "" {
-		return text
-	}
-	return fmt.Sprintf("\x1b[32m%s\x1b[0m", text)
-}
-
-func statusBlue(text string) string {
-	if text == "" {
-		return text
-	}
-	return fmt.Sprintf("\x1b[34m%s\x1b[0m", text)
-}
 
 // StatusBarState provides callbacks for accessing App state without direct dependency.
 type StatusBarState struct {
@@ -129,7 +101,7 @@ func (s *StatusBarContext) Draw(dim boxlayout.Dimensions) error {
 		// Get running task name
 		taskName := s.state.GetCommandName()
 
-		leftContent = fmt.Sprintf(" %s %s ", statusCyan(spinner), statusGray(taskName))
+		leftContent = fmt.Sprintf(" %s %s ", style.Cyan(spinner), style.Gray(taskName))
 		visibleLen += 1 + 1 + 1 + len(taskName) + 1 // " " + spinner + " " + taskName + " "
 	} else {
 		leftContent = " " // Single space when not running
@@ -139,7 +111,7 @@ func (s *StatusBarContext) Draw(dim boxlayout.Dimensions) error {
 	// Show Studio status if running
 	if s.state.IsStudioRunning() {
 		studioMsg := s.tr.StatusStudioOn
-		leftContent += fmt.Sprintf("%s ", statusGreen(studioMsg))
+		leftContent += fmt.Sprintf("%s ", style.Green(studioMsg))
 		visibleLen += len(studioMsg) + 1
 	}
 
@@ -147,7 +119,7 @@ func (s *StatusBarContext) Draw(dim boxlayout.Dimensions) error {
 	// Returns styled string and its visible length
 	appendKey := func(key, desc string) {
 		// Style: [key]desc
-		styled := fmt.Sprintf("[%s]%s", statusCyan(key), statusGray(desc))
+		styled := fmt.Sprintf("[%s]%s", style.Cyan(key), style.Gray(desc))
 		// Visible: [key]desc
 		vLen := 1 + len(key) + 1 + len(desc)
 
@@ -164,7 +136,7 @@ func (s *StatusBarContext) Draw(dim boxlayout.Dimensions) error {
 	appendKey("c", s.tr.KeyHintCopy)
 
 	// Right content (Metadata)
-	styledRight := fmt.Sprintf("%s %s", statusBlue(s.config.Developer), statusGray(s.config.Version))
+	styledRight := fmt.Sprintf("%s %s", style.Blue(s.config.Developer), style.Gray(s.config.Version))
 	rightLen := len(s.config.Developer) + 1 + len(s.config.Version)
 
 	// Calculate padding

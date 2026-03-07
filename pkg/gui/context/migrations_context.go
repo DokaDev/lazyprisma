@@ -6,41 +6,13 @@ import (
 	"strings"
 
 	"github.com/dokadev/lazyprisma/pkg/database"
+	"github.com/dokadev/lazyprisma/pkg/gui/style"
 	"github.com/dokadev/lazyprisma/pkg/gui/types"
 	"github.com/dokadev/lazyprisma/pkg/i18n"
 	"github.com/dokadev/lazyprisma/pkg/prisma"
 	"github.com/jesseduffield/gocui"
 	"github.com/jesseduffield/lazycore/pkg/boxlayout"
 )
-
-// Self-contained ANSI colour helpers (avoid importing pkg/app)
-func migRed(text string) string {
-	if text == "" {
-		return text
-	}
-	return fmt.Sprintf("\x1b[31m%s\x1b[0m", text)
-}
-
-func migYellow(text string) string {
-	if text == "" {
-		return text
-	}
-	return fmt.Sprintf("\x1b[33m%s\x1b[0m", text)
-}
-
-func migCyan(text string) string {
-	if text == "" {
-		return text
-	}
-	return fmt.Sprintf("\x1b[36m%s\x1b[0m", text)
-}
-
-func migOrange(text string) string {
-	if text == "" {
-		return text
-	}
-	return fmt.Sprintf("\x1b[38;5;208m%s\x1b[0m", text)
-}
 
 // Frame and title styling constants (matching app.panel.go values)
 var (
@@ -689,13 +661,13 @@ func (m *MigrationsContext) loadItemsForCurrentTab() {
 
 		// Colour priority: Failed > Checksum Mismatch > Empty > Pending > Normal
 		if mig.IsFailed {
-			m.items[i] = indexPrefix + migCyan(displayName)
+			m.items[i] = indexPrefix + style.Cyan(displayName)
 		} else if mig.ChecksumMismatch {
-			m.items[i] = indexPrefix + migOrange(displayName)
+			m.items[i] = indexPrefix + style.Orange(displayName)
 		} else if mig.IsEmpty {
-			m.items[i] = indexPrefix + migRed(displayName)
+			m.items[i] = indexPrefix + style.Red(displayName)
 		} else if m.dbConnected && mig.AppliedAt == nil {
-			m.items[i] = indexPrefix + migYellow(displayName)
+			m.items[i] = indexPrefix + style.Yellow(displayName)
 		} else {
 			m.items[i] = indexPrefix + displayName
 		}

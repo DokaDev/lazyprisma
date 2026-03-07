@@ -8,6 +8,7 @@ import (
 
 	"github.com/dokadev/lazyprisma/pkg/database"
 	"github.com/dokadev/lazyprisma/pkg/git"
+	"github.com/dokadev/lazyprisma/pkg/gui/style"
 	"github.com/dokadev/lazyprisma/pkg/gui/types"
 	"github.com/dokadev/lazyprisma/pkg/i18n"
 	"github.com/dokadev/lazyprisma/pkg/node"
@@ -15,54 +16,6 @@ import (
 	"github.com/jesseduffield/gocui"
 	"github.com/jesseduffield/lazycore/pkg/boxlayout"
 )
-
-// ANSI styling helpers (self-contained to avoid circular import with app)
-func stylize(text string, fg string, bold bool) string {
-	if text == "" {
-		return text
-	}
-	codes := ""
-	if fg != "" {
-		codes = fg
-	}
-	if bold {
-		if codes != "" {
-			codes += ";1"
-		} else {
-			codes = "1"
-		}
-	}
-	if codes == "" {
-		return text
-	}
-	return fmt.Sprintf("\x1b[%sm%s\x1b[0m", codes, text)
-}
-
-func yellowBold(text string) string {
-	return stylize(text, "33", true)
-}
-
-func greenBold(text string) string {
-	return stylize(text, "32", true)
-}
-
-func wsRed(text string) string {
-	if text == "" {
-		return text
-	}
-	return fmt.Sprintf("\x1b[31m%s\x1b[0m", text)
-}
-
-func wsRedBold(text string) string {
-	return stylize(text, "31", true)
-}
-
-func orange(text string) string {
-	if text == "" {
-		return text
-	}
-	return fmt.Sprintf("\x1b[38;5;208m%s\x1b[0m", text)
-}
 
 // Frame and title styling constants (matching app.panel.go values)
 var (
@@ -155,11 +108,11 @@ func (w *WorkspaceContext) Draw(dim boxlayout.Dimensions) error {
 	var lines []string
 
 	// Node and Prisma version on one line
-	nodeVersionStyled := yellowBold(w.nodeVersion)
-	prismaVersionStyled := yellowBold(w.prismaVersion)
+	nodeVersionStyled := style.YellowBold(w.nodeVersion)
+	prismaVersionStyled := style.YellowBold(w.prismaVersion)
 	versionLine := fmt.Sprintf(w.tr.WorkspaceVersionLine, nodeVersionStyled, prismaVersionStyled)
 	if w.prismaGlobal {
-		versionLine += " " + orange(w.tr.WorkspacePrismaGlobalIndicator)
+		versionLine += " " + style.Orange(w.tr.WorkspacePrismaGlobalIndicator)
 	}
 	lines = append(lines, versionLine)
 
@@ -169,12 +122,12 @@ func (w *WorkspaceContext) Draw(dim boxlayout.Dimensions) error {
 		// Git line with optional schema modified indicator
 		gitLine := fmt.Sprintf(w.tr.WorkspaceGitLine, w.gitRepoName)
 		if w.schemaModified {
-			gitLine += " " + orange(w.tr.WorkspaceSchemaModifiedIndicator)
+			gitLine += " " + style.Orange(w.tr.WorkspaceSchemaModifiedIndicator)
 		}
 		lines = append(lines, gitLine)
 
 		// Branch on separate line
-		branchStyled := yellowBold(w.gitBranch)
+		branchStyled := style.YellowBold(w.gitBranch)
 		lines = append(lines, fmt.Sprintf(w.tr.WorkspaceBranchFormat, branchStyled))
 	} else {
 		lines = append(lines, w.tr.WorkspaceNotGitRepository)
@@ -376,23 +329,23 @@ func (w *WorkspaceContext) buildDatabaseLines() []string {
 
 	// Display provider with status on the same line
 	providerName := database.GetProviderDisplayName(w.dbProvider)
-	providerName = yellowBold(providerName)
+	providerName = style.YellowBold(providerName)
 
 	// Build provider line with status
 	var providerLine string
 	if w.dbConnected {
-		statusStyled := greenBold(w.tr.WorkspaceConnected)
+		statusStyled := style.GreenBold(w.tr.WorkspaceConnected)
 		providerLine = fmt.Sprintf(w.tr.WorkspaceProviderLine, providerName, statusStyled)
 	} else if w.dbError != "" {
 		if w.isConfigurationError() {
-			statusStyled := wsRedBold(w.tr.WorkspaceNotConfigured)
+			statusStyled := style.RedBold(w.tr.WorkspaceNotConfigured)
 			providerLine = fmt.Sprintf(w.tr.WorkspaceProviderLine, providerName, statusStyled)
 		} else {
-			statusStyled := wsRedBold(w.tr.WorkspaceDisconnected)
+			statusStyled := style.RedBold(w.tr.WorkspaceDisconnected)
 			providerLine = fmt.Sprintf(w.tr.WorkspaceProviderLine, providerName, statusStyled)
 		}
 	} else {
-		statusStyled := wsRedBold(w.tr.WorkspaceDisconnected)
+		statusStyled := style.RedBold(w.tr.WorkspaceDisconnected)
 		providerLine = fmt.Sprintf(w.tr.WorkspaceProviderLine, providerName, statusStyled)
 	}
 	lines = append(lines, providerLine)
@@ -406,7 +359,7 @@ func (w *WorkspaceContext) buildDatabaseLines() []string {
 
 		// Add hardcoded warning if applicable
 		if w.isHardcoded {
-			lines = append(lines, fmt.Sprintf("%s %s", displayURL, wsRed(w.tr.WorkspaceHardcodedIndicator)))
+			lines = append(lines, fmt.Sprintf("%s %s", displayURL, style.Red(w.tr.WorkspaceHardcodedIndicator)))
 		} else {
 			lines = append(lines, displayURL)
 		}
@@ -414,10 +367,10 @@ func (w *WorkspaceContext) buildDatabaseLines() []string {
 		// Only show error in URL field if it's a configuration issue
 		// Apply styling: bold+red env var name, red "not configured"
 		if w.envVarName != "" && strings.Contains(w.dbError, w.tr.WorkspaceNotConfiguredSuffix) {
-			styledError := wsRedBold(w.envVarName) + wsRed(w.tr.WorkspaceNotConfiguredSuffix)
+			styledError := style.RedBold(w.envVarName) + style.Red(w.tr.WorkspaceNotConfiguredSuffix)
 			lines = append(lines, styledError)
 		} else {
-			lines = append(lines, wsRed(w.dbError))
+			lines = append(lines, style.Red(w.dbError))
 		}
 	} else {
 		lines = append(lines, w.tr.WorkspaceNotSet)
@@ -425,7 +378,7 @@ func (w *WorkspaceContext) buildDatabaseLines() []string {
 
 	// Show detailed error message if disconnected (not configuration error)
 	if !w.dbConnected && w.dbError != "" && !w.isConfigurationError() {
-		lines = append(lines, wsRed(fmt.Sprintf(w.tr.WorkspaceErrorFormat, w.dbError)))
+		lines = append(lines, style.Red(fmt.Sprintf(w.tr.WorkspaceErrorFormat, w.dbError)))
 	}
 
 	return lines

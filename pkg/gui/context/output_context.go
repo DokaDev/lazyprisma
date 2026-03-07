@@ -4,40 +4,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/dokadev/lazyprisma/pkg/gui/style"
 	"github.com/dokadev/lazyprisma/pkg/gui/types"
 	"github.com/dokadev/lazyprisma/pkg/i18n"
 	"github.com/jesseduffield/gocui"
 	"github.com/jesseduffield/lazycore/pkg/boxlayout"
 )
-
-// ANSI styling helpers (self-contained to avoid circular import with app)
-func gray(text string) string {
-	if text == "" {
-		return text
-	}
-	return fmt.Sprintf("\x1b[38;5;240m%s\x1b[0m", text)
-}
-
-func red(text string) string {
-	if text == "" {
-		return text
-	}
-	return fmt.Sprintf("\x1b[31m%s\x1b[0m", text)
-}
-
-func cyanBold(text string) string {
-	if text == "" {
-		return text
-	}
-	return fmt.Sprintf("\x1b[36;1m%s\x1b[0m", text)
-}
-
-func redBold(text string) string {
-	if text == "" {
-		return text
-	}
-	return fmt.Sprintf("\x1b[31;1m%s\x1b[0m", text)
-}
 
 // Frame and title styling constants (matching app.panel.go values)
 var (
@@ -181,7 +153,7 @@ func (o *OutputContext) LogAction(action string, details ...string) {
 		o.content += "\n"
 	}
 
-	header := fmt.Sprintf("%s %s", gray(timestamp), cyanBold(action))
+	header := fmt.Sprintf("%s %s", style.Gray(timestamp), style.CyanBold(action))
 	o.content += header + "\n"
 
 	for _, detail := range details {
@@ -199,11 +171,11 @@ func (o *OutputContext) LogActionRed(action string, details ...string) {
 		o.content += "\n"
 	}
 
-	header := fmt.Sprintf("%s %s", gray(timestamp), redBold(action))
+	header := fmt.Sprintf("%s %s", style.Gray(timestamp), style.RedBold(action))
 	o.content += header + "\n"
 
 	for _, detail := range details {
-		o.content += "  " + red(detail) + "\n"
+		o.content += "  " + style.Red(detail) + "\n"
 	}
 
 	o.autoScrollToBottom = true

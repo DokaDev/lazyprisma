@@ -10,76 +10,13 @@ import (
 	"github.com/alecthomas/chroma/v2/formatters"
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
+	"github.com/dokadev/lazyprisma/pkg/gui/style"
 	"github.com/dokadev/lazyprisma/pkg/gui/types"
 	"github.com/dokadev/lazyprisma/pkg/i18n"
 	"github.com/dokadev/lazyprisma/pkg/prisma"
 	"github.com/jesseduffield/gocui"
 	"github.com/jesseduffield/lazycore/pkg/boxlayout"
 )
-
-// ============================================================================
-// Self-contained ANSI styling helpers (avoid importing pkg/app for colours)
-// ============================================================================
-
-func detailsRed(text string) string {
-	if text == "" {
-		return text
-	}
-	return fmt.Sprintf("\x1b[31m%s\x1b[0m", text)
-}
-
-func detailsGreen(text string) string {
-	if text == "" {
-		return text
-	}
-	return fmt.Sprintf("\x1b[32m%s\x1b[0m", text)
-}
-
-func detailsYellow(text string) string {
-	if text == "" {
-		return text
-	}
-	return fmt.Sprintf("\x1b[33m%s\x1b[0m", text)
-}
-
-func detailsMagenta(text string) string {
-	if text == "" {
-		return text
-	}
-	return fmt.Sprintf("\x1b[35m%s\x1b[0m", text)
-}
-
-func detailsCyan(text string) string {
-	if text == "" {
-		return text
-	}
-	return fmt.Sprintf("\x1b[36m%s\x1b[0m", text)
-}
-
-func detailsOrange(text string) string {
-	if text == "" {
-		return text
-	}
-	return fmt.Sprintf("\x1b[38;5;208m%s\x1b[0m", text)
-}
-
-// detailsStylize applies combined ANSI styling (fg colour + bold).
-func detailsStylize(text string, fgCode string, bold bool) string {
-	if text == "" {
-		return text
-	}
-	codes := make([]string, 0, 2)
-	if fgCode != "" {
-		codes = append(codes, fgCode)
-	}
-	if bold {
-		codes = append(codes, "1")
-	}
-	if len(codes) == 0 {
-		return text
-	}
-	return fmt.Sprintf("\x1b[%sm%s\x1b[0m", strings.Join(codes, ";"), text)
-}
 
 // Frame and title styling constants (matching app.panel.go values)
 var (
@@ -304,18 +241,18 @@ func (d *DetailsContext) buildMigrationDetailContent(migration *prisma.Migration
 // buildFailedMigrationContent builds content for failed/in-transaction migrations.
 func (d *DetailsContext) buildFailedMigrationContent(migration *prisma.Migration) string {
 	timestamp, name := detailsParseMigrationName(migration.Name)
-	header := fmt.Sprintf(d.tr.DetailsNameLabel, detailsCyan(name))
+	header := fmt.Sprintf(d.tr.DetailsNameLabel, style.Cyan(name))
 	header += fmt.Sprintf(d.tr.DetailsTimestampLabel, timestamp)
 	if migration.Path != "" {
 		header += fmt.Sprintf(d.tr.DetailsPathLabel, detailsGetRelativePath(migration.Path))
 	}
-	header += fmt.Sprintf(d.tr.DetailsStatusLabel+"%s\n", detailsCyan(d.tr.MigrationStatusInTransaction))
+	header += fmt.Sprintf(d.tr.DetailsStatusLabel+"%s\n", style.Cyan(d.tr.MigrationStatusInTransaction))
 
 	// Show down migration availability
 	if migration.HasDownSQL {
-		header += fmt.Sprintf(d.tr.DetailsDownMigrationLabel+"%s\n", detailsGreen(d.tr.DetailsDownMigrationAvailable))
+		header += fmt.Sprintf(d.tr.DetailsDownMigrationLabel+"%s\n", style.Green(d.tr.DetailsDownMigrationAvailable))
 	} else {
-		header += fmt.Sprintf(d.tr.DetailsDownMigrationLabel+"%s\n", detailsRed(d.tr.DetailsDownMigrationNotAvailable))
+		header += fmt.Sprintf(d.tr.DetailsDownMigrationLabel+"%s\n", style.Red(d.tr.DetailsDownMigrationNotAvailable))
 	}
 
 	// Show started_at if available
@@ -323,13 +260,13 @@ func (d *DetailsContext) buildFailedMigrationContent(migration *prisma.Migration
 		header += fmt.Sprintf(d.tr.DetailsStartedAtLabel+"%s\n", migration.StartedAt.Format("2006-01-02 15:04:05"))
 	}
 
-	header += "\n" + detailsYellow(d.tr.DetailsInTransactionWarning)
-	header += "\n" + detailsYellow(d.tr.DetailsNoAdditionalMigrationsWarning)
+	header += "\n" + style.Yellow(d.tr.DetailsInTransactionWarning)
+	header += "\n" + style.Yellow(d.tr.DetailsNoAdditionalMigrationsWarning)
 	header += "\n\n" + d.tr.DetailsResolveManuallyInstruction
 
 	// Show logs if available
 	if migration.Logs != nil && *migration.Logs != "" {
-		header += "\n" + d.tr.DetailsErrorLogsLabel + "\n" + detailsRed(*migration.Logs)
+		header += "\n" + d.tr.DetailsErrorLogsLabel + "\n" + style.Red(*migration.Logs)
 	}
 
 	// Read and show migration.sql content (if Path is available - not DB-Only)
@@ -346,7 +283,7 @@ func (d *DetailsContext) buildFailedMigrationContent(migration *prisma.Migration
 				downContent, err := os.ReadFile(downSQLPath)
 				if err == nil {
 					highlightedDownSQL := detailsHighlightSQL(string(downContent))
-					result += "\n\n" + detailsYellow(d.tr.DetailsDownMigrationSQLLabel) + "\n\n" + highlightedDownSQL
+					result += "\n\n" + style.Yellow(d.tr.DetailsDownMigrationSQLLabel) + "\n\n" + highlightedDownSQL
 				}
 			}
 			return result
@@ -359,9 +296,9 @@ func (d *DetailsContext) buildFailedMigrationContent(migration *prisma.Migration
 // buildDBOnlyContent builds content for DB-only migrations.
 func (d *DetailsContext) buildDBOnlyContent(migration *prisma.Migration) string {
 	timestamp, name := detailsParseMigrationName(migration.Name)
-	header := fmt.Sprintf(d.tr.DetailsNameLabel, detailsYellow(name))
+	header := fmt.Sprintf(d.tr.DetailsNameLabel, style.Yellow(name))
 	header += fmt.Sprintf(d.tr.DetailsTimestampLabel, timestamp)
-	header += fmt.Sprintf(d.tr.DetailsStatusLabel+"%s\n\n", detailsRed(d.tr.MigrationStatusDBOnly))
+	header += fmt.Sprintf(d.tr.DetailsStatusLabel+"%s\n\n", style.Red(d.tr.MigrationStatusDBOnly))
 	header += d.tr.DetailsDBOnlyDescription
 	return header
 }
@@ -369,32 +306,32 @@ func (d *DetailsContext) buildDBOnlyContent(migration *prisma.Migration) string 
 // buildChecksumMismatchContent builds content for checksum mismatch migrations.
 func (d *DetailsContext) buildChecksumMismatchContent(migration *prisma.Migration) string {
 	timestamp, name := detailsParseMigrationName(migration.Name)
-	header := fmt.Sprintf(d.tr.DetailsNameLabel, detailsOrange(name))
+	header := fmt.Sprintf(d.tr.DetailsNameLabel, style.Orange(name))
 	header += fmt.Sprintf(d.tr.DetailsTimestampLabel, timestamp)
 	if migration.Path != "" {
 		header += fmt.Sprintf(d.tr.DetailsPathLabel, detailsGetRelativePath(migration.Path))
 	}
 	// Show Applied status with Checksum Mismatch warning
-	statusLine := fmt.Sprintf(d.tr.DetailsStatusLabel+"%s", detailsGreen(d.tr.MigrationStatusApplied))
+	statusLine := fmt.Sprintf(d.tr.DetailsStatusLabel+"%s", style.Green(d.tr.MigrationStatusApplied))
 	if migration.AppliedAt != nil {
 		statusLine += fmt.Sprintf(" (%s)", fmt.Sprintf(d.tr.DetailsAppliedAtLabel, migration.AppliedAt.Format("2006-01-02 15:04:05")))
 	}
-	statusLine += fmt.Sprintf(" - %s\n", detailsOrange(d.tr.MigrationStatusChecksumMismatch))
+	statusLine += fmt.Sprintf(" - %s\n", style.Orange(d.tr.MigrationStatusChecksumMismatch))
 	header += statusLine
 
 	// Show down migration availability
 	if migration.HasDownSQL {
-		header += fmt.Sprintf(d.tr.DetailsDownMigrationLabel+"%s\n", detailsGreen(d.tr.DetailsDownMigrationAvailable))
+		header += fmt.Sprintf(d.tr.DetailsDownMigrationLabel+"%s\n", style.Green(d.tr.DetailsDownMigrationAvailable))
 	} else {
-		header += fmt.Sprintf(d.tr.DetailsDownMigrationLabel+"%s\n", detailsRed(d.tr.DetailsDownMigrationNotAvailable))
+		header += fmt.Sprintf(d.tr.DetailsDownMigrationLabel+"%s\n", style.Red(d.tr.DetailsDownMigrationNotAvailable))
 	}
 
 	header += "\n" + d.tr.DetailsChecksumModifiedDescription
 	header += d.tr.DetailsChecksumIssuesWarning
 
 	// Show checksum values (in orange for emphasis)
-	header += fmt.Sprintf(d.tr.DetailsLocalChecksumLabel+"%s\n", detailsOrange(migration.Checksum))
-	header += fmt.Sprintf(d.tr.DetailsHistoryChecksumLabel+"%s\n", detailsOrange(migration.DBChecksum))
+	header += fmt.Sprintf(d.tr.DetailsLocalChecksumLabel+"%s\n", style.Orange(migration.Checksum))
+	header += fmt.Sprintf(d.tr.DetailsHistoryChecksumLabel+"%s\n", style.Orange(migration.DBChecksum))
 
 	// Read and show migration.sql content
 	sqlPath := filepath.Join(migration.Path, "migration.sql")
@@ -409,7 +346,7 @@ func (d *DetailsContext) buildChecksumMismatchContent(migration *prisma.Migratio
 			downContent, err := os.ReadFile(downSQLPath)
 			if err == nil {
 				highlightedDownSQL := detailsHighlightSQL(string(downContent))
-				result += "\n\n" + detailsYellow(d.tr.DetailsDownMigrationSQLLabel) + "\n\n" + highlightedDownSQL
+				result += "\n\n" + style.Yellow(d.tr.DetailsDownMigrationSQLLabel) + "\n\n" + highlightedDownSQL
 			}
 		}
 		return result
@@ -421,18 +358,18 @@ func (d *DetailsContext) buildChecksumMismatchContent(migration *prisma.Migratio
 // buildEmptyMigrationContent builds content for empty migrations.
 func (d *DetailsContext) buildEmptyMigrationContent(migration *prisma.Migration) string {
 	timestamp, name := detailsParseMigrationName(migration.Name)
-	header := fmt.Sprintf(d.tr.DetailsNameLabel, detailsMagenta(name))
+	header := fmt.Sprintf(d.tr.DetailsNameLabel, style.Magenta(name))
 	header += fmt.Sprintf(d.tr.DetailsTimestampLabel, timestamp)
 	if migration.Path != "" {
 		header += fmt.Sprintf(d.tr.DetailsPathLabel, detailsGetRelativePath(migration.Path))
 	}
-	header += fmt.Sprintf(d.tr.DetailsStatusLabel+"%s\n", detailsRed(d.tr.MigrationStatusEmptyMigration))
+	header += fmt.Sprintf(d.tr.DetailsStatusLabel+"%s\n", style.Red(d.tr.MigrationStatusEmptyMigration))
 
 	// Show down migration availability (even for empty migrations)
 	if migration.HasDownSQL {
-		header += fmt.Sprintf(d.tr.DetailsDownMigrationLabel+"%s\n", detailsGreen(d.tr.DetailsDownMigrationAvailable))
+		header += fmt.Sprintf(d.tr.DetailsDownMigrationLabel+"%s\n", style.Green(d.tr.DetailsDownMigrationAvailable))
 	} else {
-		header += fmt.Sprintf(d.tr.DetailsDownMigrationLabel+"%s\n", detailsRed(d.tr.DetailsDownMigrationNotAvailable))
+		header += fmt.Sprintf(d.tr.DetailsDownMigrationLabel+"%s\n", style.Red(d.tr.DetailsDownMigrationNotAvailable))
 	}
 
 	header += "\n" + d.tr.DetailsEmptyMigrationDescription
@@ -456,28 +393,28 @@ func (d *DetailsContext) buildNormalMigrationContent(migration *prisma.Migration
 	timestamp, name := detailsParseMigrationName(migration.Name)
 	var header string
 	if migration.AppliedAt != nil {
-		header = fmt.Sprintf(d.tr.DetailsNameLabel, detailsGreen(name))
+		header = fmt.Sprintf(d.tr.DetailsNameLabel, style.Green(name))
 		header += fmt.Sprintf(d.tr.DetailsTimestampLabel, timestamp)
 		if migration.Path != "" {
 			header += fmt.Sprintf(d.tr.DetailsPathLabel, detailsGetRelativePath(migration.Path))
 		}
 		header += fmt.Sprintf(d.tr.DetailsStatusLabel+"%s (%s)\n",
-			detailsGreen(d.tr.MigrationStatusApplied),
+			style.Green(d.tr.MigrationStatusApplied),
 			fmt.Sprintf(d.tr.DetailsAppliedAtLabel, migration.AppliedAt.Format("2006-01-02 15:04:05")))
 	} else {
-		header = fmt.Sprintf(d.tr.DetailsNameLabel, detailsYellow(name))
+		header = fmt.Sprintf(d.tr.DetailsNameLabel, style.Yellow(name))
 		header += fmt.Sprintf(d.tr.DetailsTimestampLabel, timestamp)
 		if migration.Path != "" {
 			header += fmt.Sprintf(d.tr.DetailsPathLabel, detailsGetRelativePath(migration.Path))
 		}
-		header += fmt.Sprintf(d.tr.DetailsStatusLabel+"%s\n", detailsYellow(d.tr.MigrationStatusPending))
+		header += fmt.Sprintf(d.tr.DetailsStatusLabel+"%s\n", style.Yellow(d.tr.MigrationStatusPending))
 	}
 
 	// Show down migration availability
 	if migration.HasDownSQL {
-		header += fmt.Sprintf(d.tr.DetailsDownMigrationLabel+"%s\n", detailsGreen(d.tr.DetailsDownMigrationAvailable))
+		header += fmt.Sprintf(d.tr.DetailsDownMigrationLabel+"%s\n", style.Green(d.tr.DetailsDownMigrationAvailable))
 	} else {
-		header += fmt.Sprintf(d.tr.DetailsDownMigrationLabel+"%s\n", detailsRed(d.tr.DetailsDownMigrationNotAvailable))
+		header += fmt.Sprintf(d.tr.DetailsDownMigrationLabel+"%s\n", style.Red(d.tr.DetailsDownMigrationNotAvailable))
 	}
 
 	// Apply syntax highlighting to SQL content
@@ -491,7 +428,7 @@ func (d *DetailsContext) buildNormalMigrationContent(migration *prisma.Migration
 		downContent, err := os.ReadFile(downSQLPath)
 		if err == nil {
 			highlightedDownSQL := detailsHighlightSQL(string(downContent))
-			result += "\n\n" + detailsYellow(d.tr.DetailsDownMigrationSQLLabel) + "\n\n" + highlightedDownSQL
+			result += "\n\n" + style.Yellow(d.tr.DetailsDownMigrationSQLLabel) + "\n\n" + highlightedDownSQL
 		}
 	}
 
@@ -574,7 +511,7 @@ func (d *DetailsContext) buildActionNeededContent() string {
 	var content strings.Builder
 
 	// Header
-	content.WriteString(fmt.Sprintf("%s (%d%s", detailsYellow(d.tr.ActionNeededHeader), totalCount, d.tr.ActionNeededIssueSingular))
+	content.WriteString(fmt.Sprintf("%s (%d%s", style.Yellow(d.tr.ActionNeededHeader), totalCount, d.tr.ActionNeededIssueSingular))
 	if totalCount > 1 {
 		content.WriteString(d.tr.ActionNeededIssuePlural)
 	}
@@ -583,7 +520,7 @@ func (d *DetailsContext) buildActionNeededContent() string {
 	// Empty Migrations Section
 	if emptyCount > 0 {
 		content.WriteString(strings.Repeat("━", 40) + "\n")
-		content.WriteString(fmt.Sprintf("%s (%d)\n", detailsRed(d.tr.ActionNeededEmptyMigrationsHeader), emptyCount))
+		content.WriteString(fmt.Sprintf("%s (%d)\n", style.Red(d.tr.ActionNeededEmptyMigrationsHeader), emptyCount))
 		content.WriteString(strings.Repeat("━", 40) + "\n\n")
 
 		content.WriteString(d.tr.ActionNeededEmptyDescription)
@@ -591,7 +528,7 @@ func (d *DetailsContext) buildActionNeededContent() string {
 		content.WriteString(d.tr.ActionNeededAffectedLabel)
 		for _, mig := range emptyMigrations {
 			_, name := detailsParseMigrationName(mig.Name)
-			content.WriteString(fmt.Sprintf("  • %s\n", detailsRed(name)))
+			content.WriteString(fmt.Sprintf("  • %s\n", style.Red(name)))
 		}
 
 		content.WriteString("\n" + d.tr.ActionNeededRecommendedLabel)
@@ -603,18 +540,18 @@ func (d *DetailsContext) buildActionNeededContent() string {
 	// Checksum Mismatch Section
 	if mismatchCount > 0 {
 		content.WriteString(strings.Repeat("━", 40) + "\n")
-		content.WriteString(fmt.Sprintf("%s (%d)\n", detailsOrange(d.tr.ActionNeededChecksumMismatchHeader), mismatchCount))
+		content.WriteString(fmt.Sprintf("%s (%d)\n", style.Orange(d.tr.ActionNeededChecksumMismatchHeader), mismatchCount))
 		content.WriteString(strings.Repeat("━", 40) + "\n\n")
 
 		content.WriteString(d.tr.ActionNeededChecksumModifiedDescription)
 
-		content.WriteString(detailsYellow(d.tr.ActionNeededWarningPrefix))
+		content.WriteString(style.Yellow(d.tr.ActionNeededWarningPrefix))
 		content.WriteString(d.tr.ActionNeededEditingInconsistenciesWarning)
 
 		content.WriteString(d.tr.ActionNeededAffectedLabel)
 		for _, mig := range mismatchMigrations {
 			_, name := detailsParseMigrationName(mig.Name)
-			content.WriteString(fmt.Sprintf("  • %s\n", detailsOrange(name)))
+			content.WriteString(fmt.Sprintf("  • %s\n", style.Orange(name)))
 		}
 
 		content.WriteString("\n" + d.tr.ActionNeededRecommendedLabel)
@@ -626,7 +563,7 @@ func (d *DetailsContext) buildActionNeededContent() string {
 	// Schema Validation Section
 	if validationErrorCount > 0 {
 		content.WriteString(strings.Repeat("━", 40) + "\n")
-		content.WriteString(fmt.Sprintf("%s (%d)\n", detailsRed(d.tr.ActionNeededSchemaValidationErrorsHeader), validationErrorCount))
+		content.WriteString(fmt.Sprintf("%s (%d)\n", style.Red(d.tr.ActionNeededSchemaValidationErrorsHeader), validationErrorCount))
 		content.WriteString(strings.Repeat("━", 40) + "\n\n")
 
 		content.WriteString(d.tr.ActionNeededSchemaValidationFailedDesc)
@@ -634,15 +571,15 @@ func (d *DetailsContext) buildActionNeededContent() string {
 
 		// Show full validation output (contains detailed error info)
 		if d.validationResult.Output != "" {
-			content.WriteString(detailsStylize(d.tr.ActionNeededValidationOutputLabel, "33", true) + "\n")
+			content.WriteString(style.Stylize(d.tr.ActionNeededValidationOutputLabel, "33", true) + "\n")
 			// Display the full output with proper formatting (preserve all line breaks)
 			outputLines := strings.Split(d.validationResult.Output, "\n")
 			for _, line := range outputLines {
 				// Highlight error lines
 				if strings.Contains(line, "Error:") || strings.Contains(line, "error:") {
-					content.WriteString(detailsRed(line) + "\n")
+					content.WriteString(style.Red(line) + "\n")
 				} else if strings.Contains(line, "-->") {
-					content.WriteString(detailsYellow(line) + "\n")
+					content.WriteString(style.Yellow(line) + "\n")
 				} else {
 					// Preserve empty lines and all other content as-is
 					content.WriteString(line + "\n")
@@ -651,7 +588,7 @@ func (d *DetailsContext) buildActionNeededContent() string {
 			content.WriteString("\n")
 		}
 
-		content.WriteString(detailsStylize(d.tr.ActionNeededRecommendedActionsLabel, "33", true) + "\n")
+		content.WriteString(style.Stylize(d.tr.ActionNeededRecommendedActionsLabel, "33", true) + "\n")
 		content.WriteString(d.tr.ActionNeededFixSchemaErrors)
 		content.WriteString(d.tr.ActionNeededCheckLineNumbers)
 		content.WriteString(d.tr.ActionNeededReferPrismaDocumentation)
