@@ -48,6 +48,7 @@ type WorkspaceContext struct {
 	dbProvider     string
 	dbConnected    bool
 	dbError        string
+	dbConfigError  bool
 	envVarName     string // Environment variable name (e.g., "DATABASE_URL")
 	isHardcoded    bool   // True if URL is hardcoded in schema/config
 }
@@ -250,6 +251,7 @@ func (w *WorkspaceContext) loadDatabaseInfo() {
 	w.maskedURL = ""
 	w.dbConnected = false
 	w.dbError = ""
+	w.dbConfigError = false
 	w.envVarName = ""
 	w.isHardcoded = false
 
@@ -276,6 +278,7 @@ func (w *WorkspaceContext) loadDatabaseInfo() {
 		errMsg := err.Error()
 		if strings.Contains(errMsg, "not found") {
 			w.dbError = w.tr.WorkspaceErrorSchemaNotFound
+			w.dbConfigError = true
 		} else if strings.Contains(errMsg, "incomplete") {
 			// Store plain text, styling will be applied in buildDatabaseLines()
 			if w.envVarName != "" {
@@ -283,6 +286,7 @@ func (w *WorkspaceContext) loadDatabaseInfo() {
 			} else {
 				w.dbError = w.tr.WorkspaceDatabaseURLNotConfigured
 			}
+			w.dbConfigError = true
 		} else {
 			w.dbError = errMsg
 		}
@@ -303,6 +307,7 @@ func (w *WorkspaceContext) loadDatabaseInfo() {
 		} else {
 			w.dbError = w.tr.WorkspaceNoDatabaseURL
 		}
+		w.dbConfigError = true
 		return
 	}
 
@@ -386,23 +391,5 @@ func (w *WorkspaceContext) buildDatabaseLines() []string {
 
 // isConfigurationError checks if the error is a configuration issue
 func (w *WorkspaceContext) isConfigurationError() bool {
-	if w.dbError == "" {
-		return false
-	}
-
-	configErrors := []string{
-		"not found",
-		"not configured",
-		"not set",
-		"incomplete",
-		"no database_url",
-	}
-
-	errLower := strings.ToLower(w.dbError)
-	for _, substr := range configErrors {
-		if strings.Contains(errLower, substr) {
-			return true
-		}
-	}
-	return false
+	return w.dbConfigError
 }
