@@ -46,6 +46,7 @@ type AppConfig struct {
 	AppName   string
 	Version   string
 	Developer string
+	Language  string
 }
 
 func NewApp(config AppConfig) (*App, error) {
@@ -54,7 +55,7 @@ func NewApp(config AppConfig) (*App, error) {
 		return nil, err
 	}
 
-	cmn := common.NewCommon("en")
+	cmn := common.NewCommon(config.Language)
 
 	app := &App{
 		g:             g,

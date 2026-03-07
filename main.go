@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/dokadev/lazyprisma/pkg/app"
+	"github.com/dokadev/lazyprisma/pkg/config"
 	"github.com/dokadev/lazyprisma/pkg/i18n"
 	"github.com/dokadev/lazyprisma/pkg/prisma"
 
@@ -18,7 +19,8 @@ const (
 )
 
 func main() {
-	tr := i18n.NewTranslationSet("en")
+	cfg, _ := config.Load()
+	tr := i18n.NewTranslationSet(cfg.Language)
 
 	// Handle version flag
 	if len(os.Args) > 1 {
@@ -49,6 +51,7 @@ func main() {
 		AppName:   "LazyPrisma",
 		Version:   Version,
 		Developer: Developer,
+		Language:  cfg.Language,
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, tr.ErrorFailedCreateApp, err)

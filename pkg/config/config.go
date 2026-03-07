@@ -15,7 +15,8 @@ const (
 
 // Config holds application configuration
 type Config struct {
-	Scan ScanConfig `yaml:"scan"`
+	Scan     ScanConfig `yaml:"scan"`
+	Language string     `yaml:"language"`
 }
 
 // ScanConfig holds project scanning settings
@@ -31,6 +32,7 @@ func Default() *Config {
 			MaxDepth:    10,
 			ExcludeDirs: []string{}, // Additional excludes (defaults are in prisma.DefaultExcludeDirs)
 		},
+		Language: "auto",
 	}
 }
 
@@ -127,6 +129,9 @@ scan:
   excludeDirs:
     # - /full/path/to/exclude
     # - dirname-to-exclude
+
+# Language setting ("auto" for system detection, "en" for English, "ko" for Korean)
+language: auto
 `
 		return os.WriteFile(path, []byte(defaultConfig), 0644)
 	}
