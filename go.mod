@@ -3,6 +3,7 @@ module github.com/dokadev/lazyprisma
 go 1.25.5
 
 require (
+	dario.cat/mergo v1.0.2
 	github.com/alecthomas/chroma/v2 v2.21.1
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/jesseduffield/gocui v0.3.1-0.20260128194906-9d8c3cdfac18

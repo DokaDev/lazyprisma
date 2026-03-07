@@ -1,14 +1,19 @@
 package i18n
 
 import (
+	"embed"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io/fs"
 	"os"
 	"strings"
+
+	"dario.cat/mergo"
 )
 
-// Supported language codes
-var supportedLanguages = map[string]func() *TranslationSet{
-	"en": EnglishTranslationSet,
-}
+//go:embed translations/*.json
+var translationsFS embed.FS
 
 // NewTranslationSet returns a TranslationSet for the given language.
 // If language is "auto", it detects the system language.
@@ -18,11 +23,43 @@ func NewTranslationSet(language string) *TranslationSet {
 		language = detectSystemLanguage()
 	}
 
-	if factory, ok := supportedLanguages[language]; ok {
-		return factory()
+	if language == "en" {
+		return EnglishTranslationSet()
 	}
 
-	return EnglishTranslationSet()
+	base := EnglishTranslationSet()
+	overlay, err := loadLanguageJSON(language)
+	if err != nil {
+		fmt.Printf("warning: failed to load translations for %q: %v\n", language, err)
+		return base
+	}
+
+	if err := mergo.Merge(base, &overlay, mergo.WithOverride); err != nil {
+		fmt.Printf("warning: failed to merge translations for %q: %v\n", language, err)
+		return EnglishTranslationSet()
+	}
+
+	return base
+}
+
+// loadLanguageJSON reads a translation JSON file from the embedded filesystem.
+// If the file does not exist, it returns an empty TranslationSet with nil error.
+func loadLanguageJSON(language string) (TranslationSet, error) {
+	filename := fmt.Sprintf("translations/%s.json", language)
+	data, err := translationsFS.ReadFile(filename)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return TranslationSet{}, nil
+		}
+		return TranslationSet{}, fmt.Errorf("reading %s: %w", filename, err)
+	}
+
+	var ts TranslationSet
+	if err := json.Unmarshal(data, &ts); err != nil {
+		return TranslationSet{}, fmt.Errorf("invalid JSON in %s: %w", filename, err)
+	}
+
+	return ts, nil
 }
 
 // detectSystemLanguage checks LANG, LC_ALL, LC_MESSAGES environment variables.

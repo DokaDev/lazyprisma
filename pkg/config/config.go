@@ -130,7 +130,7 @@ scan:
     # - /full/path/to/exclude
     # - dirname-to-exclude
 
-# Language setting ("auto" for system detection, "en" for English, "ko" for Korean)
+# Language setting ("auto" for system detection, or a language code like "en", "de")
 language: auto
 `
 		return os.WriteFile(path, []byte(defaultConfig), 0644)
