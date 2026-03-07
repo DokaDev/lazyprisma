@@ -2,53 +2,46 @@ package app
 
 import (
 	"fmt"
-	"strings"
 
+	"github.com/dokadev/lazyprisma/pkg/i18n"
 	"github.com/jesseduffield/gocui"
 	"github.com/jesseduffield/lazycore/pkg/boxlayout"
 )
 
 // ListModalItem represents a selectable item in the list modal
 type ListModalItem struct {
-	Label       string      // Display text in the list
-	Description string      // Description shown in the bottom view
+	Label       string       // Display text in the list
+	Description string       // Description shown in the bottom view
 	OnSelect    func() error // Callback when item is selected with Enter
 }
 
 // ListModal displays a list of items with descriptions
 type ListModal struct {
-	g            *gocui.Gui
-	title        string
-	items        []ListModalItem
-	selectedIdx  int
-	originY      int // Scroll position for list view
-	width        int
-	height       int
-	style        MessageModalStyle
-	onCancel     func()
+	*BaseModal
+	title       string
+	items       []ListModalItem
+	selectedIdx int
+	originY     int // Scroll position for list view
+	width       int
+	height      int
+	onCancel    func()
 }
 
 // NewListModal creates a new list modal
-func NewListModal(g *gocui.Gui, title string, items []ListModalItem, onCancel func()) *ListModal {
+func NewListModal(g *gocui.Gui, tr *i18n.TranslationSet, title string, items []ListModalItem, onCancel func()) *ListModal {
 	return &ListModal{
-		g:           g,
+		BaseModal:   NewBaseModal("list_modal", g, tr),
 		title:       title,
 		items:       items,
 		selectedIdx: 0,
-		style:       MessageModalStyle{}, // Default style
 		onCancel:    onCancel,
 	}
 }
 
 // WithStyle sets the modal style
 func (m *ListModal) WithStyle(style MessageModalStyle) *ListModal {
-	m.style = style
+	m.SetStyle(style)
 	return m
-}
-
-// ID returns the modal's view ID
-func (m *ListModal) ID() string {
-	return "list_modal"
 }
 
 // listViewID returns the list view ID
@@ -63,26 +56,15 @@ func (m *ListModal) descViewID() string {
 
 // Draw renders the list modal with two views (list on top, description on bottom)
 func (m *ListModal) Draw(dim boxlayout.Dimensions) error {
-	// Get screen size
-	screenWidth, screenHeight := m.g.Size()
-
 	// Calculate width (5/7 of screen, min 80)
-	m.width = 5 * screenWidth / 7
-	minWidth := 80
-	if m.width < minWidth {
-		if screenWidth-2 < minWidth {
-			m.width = screenWidth - 2
-		} else {
-			m.width = minWidth
-		}
-	}
+	m.width = m.CalculateDimensions(5.0/7.0, 80)
 
 	// Calculate description height dynamically based on selected item's description
 	availableWidth := m.width - 4 // Minus frame and padding
 	var descContentLines int
 	if m.selectedIdx >= 0 && m.selectedIdx < len(m.items) {
 		desc := m.items[m.selectedIdx].Description
-		wrappedLines := m.wrapText(desc, availableWidth)
+		wrappedLines := WrapText(desc, availableWidth, "")
 		descContentLines = len(wrappedLines)
 	}
 
@@ -95,6 +77,8 @@ func (m *ListModal) Draw(dim boxlayout.Dimensions) error {
 	m.height = listHeight + descHeight + 1 // +1 for gap
 
 	// Don't exceed screen height
+	screenWidth, screenHeight := m.g.Size()
+	_ = screenWidth
 	maxHeight := screenHeight - 4
 	if m.height > maxHeight {
 		m.height = maxHeight
@@ -108,8 +92,7 @@ func (m *ListModal) Draw(dim boxlayout.Dimensions) error {
 	}
 
 	// Center the modal
-	x0 := (screenWidth - m.width) / 2
-	y0 := (screenHeight - m.height) / 2
+	x0, y0, _, _ := m.CenterBox(m.width, m.height)
 
 	// Draw list view (top)
 	listX0 := x0
@@ -136,27 +119,12 @@ func (m *ListModal) Draw(dim boxlayout.Dimensions) error {
 
 // drawListView renders the list view (top)
 func (m *ListModal) drawListView(x0, y0, x1, y1 int) error {
-	v, err := m.g.SetView(m.listViewID(), x0, y0, x1, y1, 0)
-	if err != nil && err.Error() != "unknown view" {
+	v, _, err := m.SetupView(m.listViewID(), x0, y0, x1, y1, 0, " "+m.title+" ", "")
+	if err != nil {
 		return err
 	}
 
 	v.Clear()
-	v.Frame = true
-	v.FrameRunes = []rune{'─', '│', '╭', '╮', '╰', '╯'}
-	v.Title = " " + m.title + " "
-	v.Footer = ""
-
-	// Apply frame color (border) if set
-	if m.style.BorderColor != ColorDefault {
-		v.FrameColor = gocui.Attribute(colorToAnsiCode(m.style.BorderColor))
-	}
-
-	// Apply title color if set
-	if m.style.TitleColor != ColorDefault {
-		v.TitleColor = gocui.Attribute(colorToAnsiCode(m.style.TitleColor))
-	}
-
 	v.Wrap = false
 
 	// Enable highlight for selection (like MigrationsPanel)
@@ -180,22 +148,12 @@ func (m *ListModal) drawListView(x0, y0, x1, y1 int) error {
 
 // drawDescView renders the description view (bottom)
 func (m *ListModal) drawDescView(x0, y0, x1, y1 int) error {
-	v, err := m.g.SetView(m.descViewID(), x0, y0, x1, y1, 0)
-	if err != nil && err.Error() != "unknown view" {
+	v, _, err := m.SetupView(m.descViewID(), x0, y0, x1, y1, 0, "", m.tr.ModalFooterListNavigate)
+	if err != nil {
 		return err
 	}
 
 	v.Clear()
-	v.Frame = true
-	v.FrameRunes = []rune{'─', '│', '╭', '╮', '╰', '╯'}
-	v.Title = ""
-	v.Footer = " [↑/↓] Navigate [Enter] Select [ESC] Cancel "
-
-	// Apply frame color (border) if set
-	if m.style.BorderColor != ColorDefault {
-		v.FrameColor = gocui.Attribute(colorToAnsiCode(m.style.BorderColor))
-	}
-
 	v.Wrap = true
 
 	// Render description for selected item
@@ -204,7 +162,7 @@ func (m *ListModal) drawDescView(x0, y0, x1, y1 int) error {
 
 		// Word wrap description
 		availableWidth := (x1 - x0) - 4 // Minus frame and padding
-		wrappedLines := m.wrapText(desc, availableWidth)
+		wrappedLines := WrapText(desc, availableWidth, "")
 
 		for _, line := range wrappedLines {
 			fmt.Fprintln(v, "  "+line)
@@ -212,52 +170,6 @@ func (m *ListModal) drawDescView(x0, y0, x1, y1 int) error {
 	}
 
 	return nil
-}
-
-// wrapText wraps text to fit within the specified width
-func (m *ListModal) wrapText(text string, width int) []string {
-	if width <= 0 {
-		return []string{text}
-	}
-
-	var lines []string
-	paragraphs := strings.Split(text, "\n")
-
-	for _, para := range paragraphs {
-		if len(para) == 0 {
-			lines = append(lines, "")
-			continue
-		}
-
-		if len(para) <= width {
-			lines = append(lines, para)
-		} else {
-			// Simple word wrapping
-			words := strings.Fields(para)
-			currentLine := ""
-
-			for _, word := range words {
-				if len(currentLine)+len(word)+1 <= width {
-					if currentLine == "" {
-						currentLine = word
-					} else {
-						currentLine += " " + word
-					}
-				} else {
-					// Current line is full, start new line
-					lines = append(lines, currentLine)
-					currentLine = word
-				}
-			}
-
-			// Add remaining line
-			if currentLine != "" {
-				lines = append(lines, currentLine)
-			}
-		}
-	}
-
-	return lines
 }
 
 // HandleKey handles keyboard input

@@ -6,6 +6,10 @@ import (
 	"time"
 
 	"github.com/dokadev/lazyprisma/pkg/commands"
+	"github.com/dokadev/lazyprisma/pkg/common"
+	"github.com/dokadev/lazyprisma/pkg/gui/context"
+	"github.com/dokadev/lazyprisma/pkg/i18n"
+	"github.com/dokadev/lazyprisma/pkg/prisma"
 	"github.com/jesseduffield/gocui"
 )
 
@@ -13,11 +17,11 @@ const (
 	spinnerTickInterval = 50 * time.Millisecond
 )
 
-var spinnerFrames = []rune{'|', '/', '-', '\\'}
-
 type App struct {
 	g            *gocui.Gui
 	config       AppConfig
+	Common       *common.Common
+	Tr           *i18n.TranslationSet
 	panels       map[string]Panel
 	focusOrder   []string
 	currentFocus int
@@ -42,6 +46,7 @@ type AppConfig struct {
 	AppName   string
 	Version   string
 	Developer string
+	Language  string
 }
 
 func NewApp(config AppConfig) (*App, error) {
@@ -50,9 +55,13 @@ func NewApp(config AppConfig) (*App, error) {
 		return nil, err
 	}
 
+	cmn := common.NewCommon(i18n.NewTranslationSet(config.Language))
+
 	app := &App{
 		g:             g,
 		config:        config,
+		Common:        cmn,
+		Tr:            cmn.Tr,
 		panels:        make(map[string]Panel),
 		focusOrder:    []string{ViewWorkspace, ViewMigrations, ViewDetails, ViewOutputs},
 		currentFocus:  0,
@@ -79,7 +88,7 @@ func (a *App) Run() error {
 		}
 	}()
 
-	// 초기 포커스
+	// Initial focus
 	if len(a.focusOrder) > 0 {
 		if panel, ok := a.panels[a.focusOrder[0]]; ok {
 			panel.OnFocus()
@@ -98,6 +107,27 @@ func (a *App) RegisterPanel(panel Panel) {
 
 func (a *App) GetGui() *gocui.Gui {
 	return a.g
+}
+
+// StatusBarState returns callbacks for the StatusBarContext to access App state.
+func (a *App) StatusBarState() context.StatusBarState {
+	return context.StatusBarState{
+		IsCommandRunning: func() bool {
+			return a.commandRunning.Load()
+		},
+		GetSpinnerFrame: func() uint32 {
+			return a.spinnerFrame.Load()
+		},
+		IsStudioRunning: func() bool {
+			return a.studioRunning
+		},
+		GetCommandName: func() string {
+			if val := a.runningCommandName.Load(); val != nil {
+				return val.(string)
+			}
+			return ""
+		},
+	}
 }
 
 // OpenModal opens a modal and saves current focus state
@@ -165,18 +195,18 @@ func (a *App) finishCommand() {
 // logCommandBlocked logs a message when command execution is blocked
 func (a *App) logCommandBlocked(commandName string) {
 	a.g.Update(func(g *gocui.Gui) error {
-		if outputPanel, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+		if outputPanel, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
 			runningTask := ""
 			if val := a.runningCommandName.Load(); val != nil {
 				runningTask = val.(string)
 			}
 
-			message := fmt.Sprintf("Cannot execute '%s'", commandName)
+			message := fmt.Sprintf(a.Tr.ErrorCannotExecuteCommand, commandName)
 			if runningTask != "" {
-				message += fmt.Sprintf(" ('%s' is currently running)", runningTask)
+				message += fmt.Sprintf(a.Tr.ErrorCommandCurrentlyRunning, runningTask)
 			}
 
-			outputPanel.LogActionRed("Operation Blocked", message)
+			outputPanel.LogActionRed(a.Tr.ErrorOperationBlocked, message)
 		}
 		return nil
 	})
@@ -195,7 +225,7 @@ func (a *App) startSpinnerUpdater() {
 				if a.commandRunning.Load() {
 					// Increment frame index (0-3, wrapping around)
 					currentFrame := a.spinnerFrame.Load()
-					nextFrame := (currentFrame + 1) % uint32(len(spinnerFrames))
+					nextFrame := (currentFrame + 1) % context.SpinnerFrameCount()
 					a.spinnerFrame.Store(nextFrame)
 
 					// Trigger UI update (thread-safe)
@@ -209,6 +239,12 @@ func (a *App) startSpinnerUpdater() {
 			}
 		}
 	}()
+}
+
+// HandlePanelClick is the public wrapper for panel-click focus switching.
+// It is used as a callback by contexts that manage their own mouse events.
+func (a *App) HandlePanelClick(viewID string) {
+	_ = a.handlePanelClick(viewID) // error intentionally ignored: click handler fallback
 }
 
 // handlePanelClick handles mouse click on a panel to switch focus
@@ -269,13 +305,11 @@ func (a *App) RegisterMouseBindings() {
 		}
 	}
 
-	// Register special bindings for MigrationsPanel
-	if migrationsPanel, ok := a.panels[ViewMigrations].(*MigrationsPanel); ok {
-		migrationsPanel.SetApp(a)
-
+	// Register special bindings for MigrationsContext
+	if migrationsCtx, ok := a.panels[ViewMigrations].(*context.MigrationsContext); ok {
 		// Tab click binding
 		a.g.SetTabClickBinding(ViewMigrations, func(tabIndex int) error {
-			return migrationsPanel.handleTabClick(tabIndex)
+			return migrationsCtx.HandleTabClick(tabIndex)
 		})
 
 		// List item click binding
@@ -284,16 +318,16 @@ func (a *App) RegisterMouseBindings() {
 			Key:      gocui.MouseLeft,
 			Modifier: gocui.ModNone,
 			Handler: func(opts gocui.ViewMouseBindingOpts) error {
-				return migrationsPanel.handleListClick(opts.Y)
+				return migrationsCtx.HandleListClick(opts.Y)
 			},
 		})
 	}
 
-	// Register special bindings for DetailsPanel
-	if detailsPanel, ok := a.panels[ViewDetails].(*DetailsPanel); ok {
+	// Register special bindings for DetailsContext
+	if detailsCtx, ok := a.panels[ViewDetails].(*context.DetailsContext); ok {
 		// Tab click binding
 		a.g.SetTabClickBinding(ViewDetails, func(tabIndex int) error {
-			return detailsPanel.handleTabClick(tabIndex)
+			return detailsCtx.HandleTabClick(tabIndex)
 		})
 
 		// Panel focus click binding (for content area)
@@ -307,7 +341,7 @@ func (a *App) RegisterMouseBindings() {
 // registerMouseWheelBindings registers mouse wheel handlers for all panels
 func (a *App) registerMouseWheelBindings() {
 	// Workspace panel
-	if workspacePanel, ok := a.panels[ViewWorkspace].(*WorkspacePanel); ok {
+	if workspaceCtx, ok := a.panels[ViewWorkspace].(*context.WorkspaceContext); ok {
 		a.g.SetViewClickBinding(&gocui.ViewMouseBinding{
 			ViewName: ViewWorkspace,
 			Key:      gocui.MouseWheelUp,
@@ -316,7 +350,7 @@ func (a *App) registerMouseWheelBindings() {
 				if a.HasActiveModal() {
 					return nil
 				}
-				workspacePanel.ScrollUpByWheel()
+				workspaceCtx.ScrollUpByWheel()
 				return nil
 			},
 		})
@@ -328,14 +362,14 @@ func (a *App) registerMouseWheelBindings() {
 				if a.HasActiveModal() {
 					return nil
 				}
-				workspacePanel.ScrollDownByWheel()
+				workspaceCtx.ScrollDownByWheel()
 				return nil
 			},
 		})
 	}
 
-	// Migrations panel
-	if migrationsPanel, ok := a.panels[ViewMigrations].(*MigrationsPanel); ok {
+	// Migrations context
+	if migrationsCtx, ok := a.panels[ViewMigrations].(*context.MigrationsContext); ok {
 		a.g.SetViewClickBinding(&gocui.ViewMouseBinding{
 			ViewName: ViewMigrations,
 			Key:      gocui.MouseWheelUp,
@@ -344,7 +378,7 @@ func (a *App) registerMouseWheelBindings() {
 				if a.HasActiveModal() {
 					return nil
 				}
-				migrationsPanel.ScrollUpByWheel()
+				migrationsCtx.ScrollUpByWheel()
 				return nil
 			},
 		})
@@ -356,14 +390,14 @@ func (a *App) registerMouseWheelBindings() {
 				if a.HasActiveModal() {
 					return nil
 				}
-				migrationsPanel.ScrollDownByWheel()
+				migrationsCtx.ScrollDownByWheel()
 				return nil
 			},
 		})
 	}
 
-	// Details panel
-	if detailsPanel, ok := a.panels[ViewDetails].(*DetailsPanel); ok {
+	// Details context
+	if detailsCtx, ok := a.panels[ViewDetails].(*context.DetailsContext); ok {
 		a.g.SetViewClickBinding(&gocui.ViewMouseBinding{
 			ViewName: ViewDetails,
 			Key:      gocui.MouseWheelUp,
@@ -372,7 +406,7 @@ func (a *App) registerMouseWheelBindings() {
 				if a.HasActiveModal() {
 					return nil
 				}
-				detailsPanel.ScrollUpByWheel()
+				detailsCtx.ScrollUpByWheel()
 				return nil
 			},
 		})
@@ -384,14 +418,14 @@ func (a *App) registerMouseWheelBindings() {
 				if a.HasActiveModal() {
 					return nil
 				}
-				detailsPanel.ScrollDownByWheel()
+				detailsCtx.ScrollDownByWheel()
 				return nil
 			},
 		})
 	}
 
 	// Output panel
-	if outputPanel, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
+	if outputPanel, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
 		a.g.SetViewClickBinding(&gocui.ViewMouseBinding{
 			ViewName: ViewOutputs,
 			Key:      gocui.MouseWheelUp,
@@ -436,8 +470,8 @@ func (a *App) RefreshAll(onComplete ...func()) bool {
 		// Update UI on main thread (thread-safe)
 		a.g.Update(func(g *gocui.Gui) error {
 			// Add refresh notification to output panel
-			if outputPanel, ok := a.panels[ViewOutputs].(*OutputPanel); ok {
-				outputPanel.LogAction("Refresh", "All panels have been refreshed")
+			if outputPanel, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
+				outputPanel.LogAction(a.Tr.ActionRefresh, a.Tr.SuccessAllPanelsRefreshed)
 			}
 
 			// Execute callbacks
@@ -454,17 +488,25 @@ func (a *App) RefreshAll(onComplete ...func()) bool {
 // refreshPanels refreshes all panels (blocking, internal)
 func (a *App) refreshPanels() {
 	// Refresh workspace panel
-	if workspacePanel, ok := a.panels[ViewWorkspace].(*WorkspacePanel); ok {
-		workspacePanel.Refresh()
+	if workspaceCtx, ok := a.panels[ViewWorkspace].(*context.WorkspaceContext); ok {
+		workspaceCtx.Refresh()
 	}
 
-	// Refresh migrations panel
-	if migrationsPanel, ok := a.panels[ViewMigrations].(*MigrationsPanel); ok {
-		migrationsPanel.Refresh()
-	}
+	// Refresh migrations context
+	if migrationsCtx, ok := a.panels[ViewMigrations].(*context.MigrationsContext); ok {
+		migrationsCtx.Refresh()
 
-	// Refresh Details panel Action-Needed data
-	if detailsPanel, ok := a.panels[ViewDetails].(*DetailsPanel); ok {
-		detailsPanel.LoadActionNeededData()
+		// Wire action-needed data from migrations to details
+		if detailsCtx, ok := a.panels[ViewDetails].(*context.DetailsContext); ok {
+			// Collect action-needed migrations from Local category
+			var actionNeeded []prisma.Migration
+			for _, mig := range migrationsCtx.GetCategory().Local {
+				if mig.IsEmpty || mig.ChecksumMismatch {
+					actionNeeded = append(actionNeeded, mig)
+				}
+			}
+			detailsCtx.SetActionNeededMigrations(actionNeeded)
+			detailsCtx.LoadActionNeededData()
+		}
 	}
 }

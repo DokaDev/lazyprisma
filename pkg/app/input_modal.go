@@ -3,19 +3,19 @@ package app
 import (
 	"strings"
 
+	"github.com/dokadev/lazyprisma/pkg/i18n"
 	"github.com/jesseduffield/gocui"
 	"github.com/jesseduffield/lazycore/pkg/boxlayout"
 )
 
 // InputModal displays an input field for user text entry
 type InputModal struct {
-	g                *gocui.Gui
+	*BaseModal
 	title            string // Used as placeholder
 	subtitle         string // Optional subtitle
 	footer           string // Key bindings description
 	width            int
 	height           int
-	style            MessageModalStyle
 	onSubmit         func(string)
 	onCancel         func()
 	required         bool
@@ -23,20 +23,19 @@ type InputModal struct {
 }
 
 // NewInputModal creates a new input modal
-func NewInputModal(g *gocui.Gui, title string, onSubmit func(string), onCancel func()) *InputModal {
+func NewInputModal(g *gocui.Gui, tr *i18n.TranslationSet, title string, onSubmit func(string), onCancel func()) *InputModal {
 	return &InputModal{
-		g:        g,
-		title:    title,
-		footer:   " [Enter] Submit [ESC] Cancel ",
-		style:    MessageModalStyle{}, // Default style
-		onSubmit: onSubmit,
-		onCancel: onCancel,
+		BaseModal: NewBaseModal("input_modal", g, tr),
+		title:     title,
+		footer:    tr.ModalFooterInputSubmitCancel,
+		onSubmit:  onSubmit,
+		onCancel:  onCancel,
 	}
 }
 
 // WithStyle sets the modal style
 func (m *InputModal) WithStyle(style MessageModalStyle) *InputModal {
-	m.style = style
+	m.SetStyle(style)
 	return m
 }
 
@@ -58,66 +57,32 @@ func (m *InputModal) OnValidationFail(callback func(string)) *InputModal {
 	return m
 }
 
-// ID returns the modal's view ID
-func (m *InputModal) ID() string {
-	return "input_modal"
-}
-
 // Draw renders the input modal
 func (m *InputModal) Draw(dim boxlayout.Dimensions) error {
-	// Get screen size
-	screenWidth, screenHeight := m.g.Size()
-
-	// Calculate width (4/7 of screen, min 80)
-	m.width = 4 * screenWidth / 7
-	minWidth := 80
-	if m.width < minWidth {
-		if screenWidth-2 < minWidth {
-			m.width = screenWidth - 2
-		} else {
-			m.width = minWidth
-		}
-	}
+	// Calculate width
+	m.width = m.CalculateDimensions(4.0/7.0, 80)
 
 	// Height for input modal: minimal single line
 	m.height = 2
 
 	// Center the modal
-	x0 := (screenWidth - m.width) / 2
-	y0 := (screenHeight - m.height) / 2
-	x1 := x0 + m.width
-	y1 := y0 + m.height
+	x0, y0, x1, y1 := m.CenterBox(m.width, m.height)
 
 	// Create input view
-	v, err := m.g.SetView(m.ID(), x0, y0, x1, y1, 0)
-	isNewView := err != nil
-	if err != nil && err.Error() != "unknown view" {
+	v, isNew, err := m.SetupView(m.ID(), x0, y0, x1, y1, 0, " "+m.title+" ", m.footer)
+	if err != nil {
 		return err
 	}
 
 	// Only clear on first creation (TextArea manages content)
-	if isNewView {
+	if isNew {
 		v.Clear()
 		// Initial render to make footer visible
 		v.RenderTextArea()
 	}
 
-	v.Frame = true
-	v.FrameRunes = []rune{'─', '│', '╭', '╮', '╰', '╯'}
-	v.Title = " " + m.title + " "
 	if m.subtitle != "" {
 		v.Subtitle = " " + m.subtitle + " "
-	}
-	v.Footer = m.footer
-
-	// Apply frame color (border) if set
-	if m.style.BorderColor != ColorDefault {
-		v.FrameColor = gocui.Attribute(colorToAnsiCode(m.style.BorderColor))
-	}
-
-	// Apply title color if set
-	if m.style.TitleColor != ColorDefault {
-		v.TitleColor = gocui.Attribute(colorToAnsiCode(m.style.TitleColor))
 	}
 
 	// Input field settings (CRITICAL - DO NOT CHANGE)
@@ -156,7 +121,7 @@ func (m *InputModal) HandleKey(key any, mod gocui.Modifier) error {
 		// Validate if required
 		if m.required && input == "" {
 			if m.onValidationFail != nil {
-				m.onValidationFail("Input is required")
+				m.onValidationFail(m.tr.ModalMsgInputRequired)
 			}
 			return nil // Don't submit
 		}
@@ -185,5 +150,5 @@ func (m *InputModal) OnClose() {
 	// Disable cursor at Gui level
 	m.g.Cursor = false
 	// Delete the input modal view
-	m.g.DeleteView(m.ID())
+	m.BaseModal.OnClose()
 }

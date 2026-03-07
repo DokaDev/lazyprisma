@@ -1,6 +1,9 @@
 package app
 
-import "github.com/jesseduffield/gocui"
+import (
+	"github.com/dokadev/lazyprisma/pkg/gui/context"
+	"github.com/jesseduffield/gocui"
+)
 
 func (a *App) RegisterKeybindings() error {
 	// Quit or close modal (lowercase q)
@@ -18,17 +21,6 @@ func (a *App) RegisterKeybindings() error {
 	}); err != nil {
 		return err
 	}
-
-	// Quit or close modal (uppercase Q)
-	// if err := a.g.SetKeybinding("", 'Q', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-	// 	if a.HasActiveModal() {
-	// 		a.CloseModal()
-	// 		return nil
-	// 	}
-	// 	return gocui.ErrQuit
-	// }); err != nil {
-	// 	return err
-	// }
 
 	// Ctrl+C to quit
 	if err := a.g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
@@ -56,9 +48,9 @@ func (a *App) RegisterKeybindings() error {
 		}
 		// Check if current panel supports tabs
 		if panel := a.GetCurrentPanel(); panel != nil {
-			if migrationsPanel, ok := panel.(*MigrationsPanel); ok {
+			if migrationsPanel, ok := panel.(*context.MigrationsContext); ok {
 				migrationsPanel.NextTab()
-			} else if detailsPanel, ok := panel.(*DetailsPanel); ok {
+			} else if detailsPanel, ok := panel.(*context.DetailsContext); ok {
 				detailsPanel.NextTab()
 			}
 		}
@@ -74,9 +66,9 @@ func (a *App) RegisterKeybindings() error {
 		}
 		// Check if current panel supports tabs
 		if panel := a.GetCurrentPanel(); panel != nil {
-			if migrationsPanel, ok := panel.(*MigrationsPanel); ok {
+			if migrationsPanel, ok := panel.(*context.MigrationsContext); ok {
 				migrationsPanel.PrevTab()
-			} else if detailsPanel, ok := panel.(*DetailsPanel); ok {
+			} else if detailsPanel, ok := panel.(*context.DetailsContext); ok {
 				detailsPanel.PrevTab()
 			}
 		}
@@ -114,13 +106,13 @@ func (a *App) RegisterKeybindings() error {
 		// Handle different panel types
 		if panel := a.GetCurrentPanel(); panel != nil {
 			switch p := panel.(type) {
-			case *MigrationsPanel:
+			case *context.MigrationsContext:
 				p.SelectPrev()
-			case *WorkspacePanel:
+			case *context.WorkspaceContext:
 				p.ScrollUp()
-			case *DetailsPanel:
+			case *context.DetailsContext:
 				p.ScrollUp()
-			case *OutputPanel:
+			case *context.OutputContext:
 				p.ScrollUp()
 			}
 		}
@@ -136,13 +128,13 @@ func (a *App) RegisterKeybindings() error {
 		// Handle different panel types
 		if panel := a.GetCurrentPanel(); panel != nil {
 			switch p := panel.(type) {
-			case *MigrationsPanel:
+			case *context.MigrationsContext:
 				p.SelectNext()
-			case *WorkspacePanel:
+			case *context.WorkspaceContext:
 				p.ScrollDown()
-			case *DetailsPanel:
+			case *context.DetailsContext:
 				p.ScrollDown()
-			case *OutputPanel:
+			case *context.OutputContext:
 				p.ScrollDown()
 			}
 		}
@@ -175,13 +167,13 @@ func (a *App) RegisterKeybindings() error {
 		// Handle different panel types
 		if panel := a.GetCurrentPanel(); panel != nil {
 			switch p := panel.(type) {
-			case *MigrationsPanel:
+			case *context.MigrationsContext:
 				p.ScrollToTop()
-			case *WorkspacePanel:
+			case *context.WorkspaceContext:
 				p.ScrollToTop()
-			case *DetailsPanel:
+			case *context.DetailsContext:
 				p.ScrollToTop()
-			case *OutputPanel:
+			case *context.OutputContext:
 				p.ScrollToTop()
 			}
 		}
@@ -198,13 +190,13 @@ func (a *App) RegisterKeybindings() error {
 		// Handle different panel types
 		if panel := a.GetCurrentPanel(); panel != nil {
 			switch p := panel.(type) {
-			case *MigrationsPanel:
+			case *context.MigrationsContext:
 				p.ScrollToBottom()
-			case *WorkspacePanel:
+			case *context.WorkspaceContext:
 				p.ScrollToBottom()
-			case *DetailsPanel:
+			case *context.DetailsContext:
 				p.ScrollToBottom()
-			case *OutputPanel:
+			case *context.OutputContext:
 				p.ScrollToBottom()
 			}
 		}
@@ -223,39 +215,6 @@ func (a *App) RegisterKeybindings() error {
 	}); err != nil {
 		return err
 	}
-
-	// 'i' key - test ping to google.com
-	if err := a.g.SetKeybinding("", 'i', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		if a.HasActiveModal() {
-			return nil
-		}
-		a.TestPing()
-		return nil
-	}); err != nil {
-		return err
-	}
-
-	// // 't' key - test modal (temporary)
-	// if err := a.g.SetKeybinding("", 't', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-	// 	if a.HasActiveModal() {
-	// 		return nil
-	// 	}
-	// 	a.TestModal()
-	// 	return nil
-	// }); err != nil {
-	// 	return err
-	// }
-
-	// // 'm' key - test input modal (temporary)
-	// if err := a.g.SetKeybinding("", 'm', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-	// 	if a.HasActiveModal() {
-	// 		return nil
-	// 	}
-	// 	a.TestInputModal()
-	// 	return nil
-	// }); err != nil {
-	// 	return err
-	// }
 
 	// 'd' key - migrate dev
 	if err := a.g.SetKeybinding("", 'd', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
@@ -363,29 +322,6 @@ func (a *App) RegisterKeybindings() error {
 	}); err != nil {
 		return err
 	}
-
-	// // 'l' key - test list modal (temporary)
-	// if err := a.g.SetKeybinding("", 'l', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-	// 	if a.HasActiveModal() {
-	// 		return nil
-	// 	}
-	// 	a.TestListModal()
-	// 	return nil
-	// }); err != nil {
-	// 	return err
-	// }
-
-	// // 'y' key - test confirm modal (temporary)
-	// if err := a.g.SetKeybinding("", 'y', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-	// 	if a.HasActiveModal() {
-	// 		// Pass 'y' to modal (for ConfirmModal)
-	// 		return a.activeModal.HandleKey('y', gocui.ModNone)
-	// 	}
-	// 	a.TestConfirmModal()
-	// 	return nil
-	// }); err != nil {
-	// 	return err
-	// }
 
 	return nil
 }

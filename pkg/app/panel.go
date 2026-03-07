@@ -66,7 +66,7 @@ func (bp *BasePanel) OnBlur() {
 	}
 }
 
-// SetupView는 공통 뷰 설정을 처리합니다
+// SetupView handles common view setup
 func (bp *BasePanel) SetupView(v *gocui.View, title string) {
 	bp.v = v
 	v.Clear()

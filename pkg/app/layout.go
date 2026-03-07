@@ -21,7 +21,7 @@ func (a *App) layoutManager(g *gocui.Gui) error {
 						Children: []*boxlayout.Box{
 							{
 								Window: ViewWorkspace,
-								Size:   10, // 실제 컨텐츠 길이 확인 후 재조정 필요
+								Size:   10, // May need readjusting based on actual content length
 							},
 							{
 								Window: ViewMigrations,
@@ -52,10 +52,10 @@ func (a *App) layoutManager(g *gocui.Gui) error {
 		},
 	}
 
-	// boxlayout으로 차원 계산
+	// Calculate dimensions via boxlayout
 	dimensionMap := boxlayout.ArrangeWindows(root, 0, 0, width, height)
 
-	// 각 패널 렌더링
+	// Render each panel
 	for id, dim := range dimensionMap {
 		if panel, ok := a.panels[id]; ok {
 			if err := panel.Draw(dim); err != nil {
