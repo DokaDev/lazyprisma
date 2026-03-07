@@ -7,10 +7,6 @@ import (
 	"github.com/jesseduffield/gocui"
 )
 
-// ModalStyle holds styling options for modals
-// (renamed from MessageModalStyle for shared use across all modal types)
-type ModalStyle = MessageModalStyle
-
 // BaseModal provides common infrastructure shared by all modal types
 type BaseModal struct {
 	id    string

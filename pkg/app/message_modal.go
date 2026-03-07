@@ -104,8 +104,3 @@ func (m *MessageModal) OnClose() {
 	m.BaseModal.OnClose()
 }
 
-// colorToAnsiCode converts Color to gocui color attribute
-// Deprecated: use ColorToGocuiAttr instead. Kept for backward compatibility.
-func colorToAnsiCode(c Color) int {
-	return ColorToGocuiAttr(c)
-}

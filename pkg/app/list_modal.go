@@ -148,23 +148,12 @@ func (m *ListModal) drawListView(x0, y0, x1, y1 int) error {
 
 // drawDescView renders the description view (bottom)
 func (m *ListModal) drawDescView(x0, y0, x1, y1 int) error {
-	style := m.Style()
-	v, err := m.g.SetView(m.descViewID(), x0, y0, x1, y1, 0)
-	if err != nil && err.Error() != "unknown view" {
+	v, _, err := m.SetupView(m.descViewID(), x0, y0, x1, y1, 0, "", m.tr.ModalFooterListNavigate)
+	if err != nil {
 		return err
 	}
 
 	v.Clear()
-	v.Frame = true
-	v.FrameRunes = []rune{'─', '│', '╭', '╮', '╰', '╯'}
-	v.Title = ""
-	v.Footer = m.tr.ModalFooterListNavigate
-
-	// Apply frame color (border) if set
-	if style.BorderColor != ColorDefault {
-		v.FrameColor = gocui.Attribute(ColorToGocuiAttr(style.BorderColor))
-	}
-
 	v.Wrap = true
 
 	// Render description for selected item
