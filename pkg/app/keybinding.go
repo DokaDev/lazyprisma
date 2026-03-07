@@ -22,17 +22,6 @@ func (a *App) RegisterKeybindings() error {
 		return err
 	}
 
-	// Quit or close modal (uppercase Q)
-	// if err := a.g.SetKeybinding("", 'Q', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-	// 	if a.HasActiveModal() {
-	// 		a.CloseModal()
-	// 		return nil
-	// 	}
-	// 	return gocui.ErrQuit
-	// }); err != nil {
-	// 	return err
-	// }
-
 	// Ctrl+C to quit
 	if err := a.g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		return gocui.ErrQuit
