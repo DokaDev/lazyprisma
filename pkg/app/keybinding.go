@@ -227,39 +227,6 @@ func (a *App) RegisterKeybindings() error {
 		return err
 	}
 
-	// 'i' key - test ping to google.com
-	if err := a.g.SetKeybinding("", 'i', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		if a.HasActiveModal() {
-			return nil
-		}
-		a.TestPing()
-		return nil
-	}); err != nil {
-		return err
-	}
-
-	// // 't' key - test modal (temporary)
-	// if err := a.g.SetKeybinding("", 't', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-	// 	if a.HasActiveModal() {
-	// 		return nil
-	// 	}
-	// 	a.TestModal()
-	// 	return nil
-	// }); err != nil {
-	// 	return err
-	// }
-
-	// // 'm' key - test input modal (temporary)
-	// if err := a.g.SetKeybinding("", 'm', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-	// 	if a.HasActiveModal() {
-	// 		return nil
-	// 	}
-	// 	a.TestInputModal()
-	// 	return nil
-	// }); err != nil {
-	// 	return err
-	// }
-
 	// 'd' key - migrate dev
 	if err := a.g.SetKeybinding("", 'd', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		if a.HasActiveModal() {
@@ -366,29 +333,6 @@ func (a *App) RegisterKeybindings() error {
 	}); err != nil {
 		return err
 	}
-
-	// // 'l' key - test list modal (temporary)
-	// if err := a.g.SetKeybinding("", 'l', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-	// 	if a.HasActiveModal() {
-	// 		return nil
-	// 	}
-	// 	a.TestListModal()
-	// 	return nil
-	// }); err != nil {
-	// 	return err
-	// }
-
-	// // 'y' key - test confirm modal (temporary)
-	// if err := a.g.SetKeybinding("", 'y', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-	// 	if a.HasActiveModal() {
-	// 		// Pass 'y' to modal (for ConfirmModal)
-	// 		return a.activeModal.HandleKey('y', gocui.ModNone)
-	// 	}
-	// 	a.TestConfirmModal()
-	// 	return nil
-	// }); err != nil {
-	// 	return err
-	// }
 
 	return nil
 }

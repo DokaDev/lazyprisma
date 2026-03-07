@@ -656,7 +656,7 @@ func (m *MigrationsContext) loadItemsForCurrentTab() {
 		} else if mig.HasDownSQL {
 			indexPrefix = style.Green(fmt.Sprintf("%4d │", i+1)) + " " // Green for down.sql
 		} else {
-			indexPrefix = style.Stylize(fmt.Sprintf("%4d │", i+1), "90", false) + " " // Gray for normal
+			indexPrefix = style.Gray(fmt.Sprintf("%4d │", i+1)) + " " // Gray for normal
 		}
 
 		// Colour priority: Failed > Checksum Mismatch > Empty > Pending > Normal

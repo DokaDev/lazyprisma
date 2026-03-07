@@ -722,7 +722,7 @@ func detailsHighlightSQL(code string) string {
 			result.WriteString("\n")
 		}
 		// Line number in gray color, right-aligned to 4 digits
-		result.WriteString(style.Stylize(fmt.Sprintf("%4d │", i+1), "90", false) + " " + line)
+		result.WriteString(style.Gray(fmt.Sprintf("%4d │", i+1)) + " " + line)
 	}
 
 	return result.String()
