@@ -17,7 +17,6 @@ type TranslationSet struct {
 	ErrorFailedGetWorkingDirectory   string
 	ErrorLoadingLocalMigrations      string
 	ErrorNoMigrationsFound           string
-	ErrorFailedAccessMigrationsPanel string
 	ErrorNoDBConnectionDetected      string
 	ErrorEnsureDBAccessible          string
 	ErrorFailedGetWorkingDir         string
@@ -311,7 +310,6 @@ func EnglishTranslationSet() *TranslationSet {
 		ErrorFailedGetWorkingDirectory:   "Error: Failed to get working directory",
 		ErrorLoadingLocalMigrations:      "Error loading local migrations: %v",
 		ErrorNoMigrationsFound:           "No migrations found",
-		ErrorFailedAccessMigrationsPanel: "Failed to access migrations panel.",
 		ErrorNoDBConnectionDetected:      "No database connection detected.",
 		ErrorEnsureDBAccessible:          "Please ensure your database is running and accessible.",
 		ErrorFailedGetWorkingDir:         "Failed to get working directory:",

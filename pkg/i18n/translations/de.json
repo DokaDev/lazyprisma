@@ -12,7 +12,6 @@
   "ErrorFailedGetWorkingDirectory": "Fehler: Arbeitsverzeichnis konnte nicht ermittelt werden",
   "ErrorLoadingLocalMigrations": "Fehler beim Laden lokaler Migrationen: %v",
   "ErrorNoMigrationsFound": "Keine Migrationen gefunden",
-  "ErrorFailedAccessMigrationsPanel": "Zugriff auf das Migrationen-Panel fehlgeschlagen.",
   "ErrorNoDBConnectionDetected": "Keine Datenbankverbindung erkannt.",
   "ErrorEnsureDBAccessible": "Bitte stellen Sie sicher, dass Ihre Datenbank läuft und erreichbar ist.",
   "ErrorFailedGetWorkingDir": "Arbeitsverzeichnis konnte nicht ermittelt werden:",
