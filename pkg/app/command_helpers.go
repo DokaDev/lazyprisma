@@ -28,14 +28,14 @@ type AsyncCommandOpts struct {
 	ErrorStartMsg string
 }
 
-// runStreamingCommand handles the common boilerplate for streaming prisma commands.
+// RunStreamingCommand handles the common boilerplate for streaming prisma commands.
 // Returns false if the command could not be started (another command running or panel missing).
-// The helper does NOT call finishCommand() — each callback is responsible for calling it.
-func (a *App) runStreamingCommand(opts AsyncCommandOpts) bool {
+// The helper does NOT call FinishCommand() -- each callback is responsible for calling it.
+func (a *App) RunStreamingCommand(opts AsyncCommandOpts) bool {
 	// Phase 1: Guard
 	if !opts.SkipTryStart {
-		if !a.tryStartCommand(opts.Name) {
-			a.logCommandBlocked(opts.Name)
+		if !a.TryStartCommand(opts.Name) {
+			a.LogCommandBlocked(opts.Name)
 			return false
 		}
 	}
@@ -43,14 +43,14 @@ func (a *App) runStreamingCommand(opts AsyncCommandOpts) bool {
 	// Phase 2: Get output panel
 	outputPanel, ok := a.panels[ViewOutputs].(*context.OutputContext)
 	if !ok {
-		a.finishCommand()
+		a.FinishCommand()
 		return false
 	}
 
 	// Phase 3: Get cwd
 	cwd, err := os.Getwd()
 	if err != nil {
-		a.finishCommand()
+		a.FinishCommand()
 		a.g.Update(func(g *gocui.Gui) error {
 			outputPanel.LogAction(opts.LogAction, a.Tr.ErrorFailedGetWorkingDir+" "+err.Error())
 			modal := NewMessageModal(a.g, a.Tr, opts.ErrorTitle,
@@ -100,17 +100,17 @@ func (a *App) runStreamingCommand(opts AsyncCommandOpts) bool {
 						if opts.OnSuccess != nil {
 							opts.OnSuccess(out, cwd)
 						} else {
-							a.finishCommand()
+							a.FinishCommand()
 						}
 					} else {
 						if opts.OnFailure != nil {
 							opts.OnFailure(out, cwd, exitCode)
 						} else {
-							a.finishCommand()
+							a.FinishCommand()
 						}
 					}
 				} else {
-					a.finishCommand()
+					a.FinishCommand()
 				}
 				return nil
 			})
@@ -121,10 +121,10 @@ func (a *App) runStreamingCommand(opts AsyncCommandOpts) bool {
 					if opts.OnError != nil {
 						opts.OnError(out, cwd, err)
 					} else {
-						a.finishCommand()
+						a.FinishCommand()
 					}
 				} else {
-					a.finishCommand()
+					a.FinishCommand()
 				}
 				return nil
 			})
@@ -132,7 +132,7 @@ func (a *App) runStreamingCommand(opts AsyncCommandOpts) bool {
 
 	// Phase 6: RunAsync
 	if err := cmd.RunAsync(); err != nil {
-		a.finishCommand()
+		a.FinishCommand()
 		errorTitle := opts.ErrorTitle
 		errorMsg := opts.ErrorStartMsg
 		a.g.Update(func(g *gocui.Gui) error {

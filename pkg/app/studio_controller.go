@@ -2,118 +2,149 @@ package app
 
 import (
 	"os"
+	"sync/atomic"
 	"time"
 
 	"github.com/dokadev/lazyprisma/pkg/commands"
 	"github.com/dokadev/lazyprisma/pkg/gui/context"
+	"github.com/dokadev/lazyprisma/pkg/gui/types"
 	"github.com/jesseduffield/gocui"
 )
 
-// Studio toggles Prisma Studio
-func (a *App) Studio() {
-	outputPanel, ok := a.panels[ViewOutputs].(*context.OutputContext)
-	if !ok {
-		return
+// StudioController handles Prisma Studio toggle operations.
+type StudioController struct {
+	c             types.IControllerHost
+	g             *gocui.Gui
+	outputCtx     *context.OutputContext
+	openModal     func(Modal)
+	studioCmd     *commands.Command // Running studio command
+	studioRunning atomic.Bool       // True if studio is running
+}
+
+// NewStudioController creates a new StudioController.
+func NewStudioController(
+	c types.IControllerHost,
+	g *gocui.Gui,
+	outputCtx *context.OutputContext,
+	openModal func(Modal),
+) *StudioController {
+	return &StudioController{
+		c:         c,
+		g:         g,
+		outputCtx: outputCtx,
+		openModal: openModal,
 	}
+}
+
+// IsStudioRunning returns whether Prisma Studio is currently running.
+func (sc *StudioController) IsStudioRunning() bool {
+	return sc.studioRunning.Load()
+}
+
+// GetStudioCmd returns the running studio command (for cleanup on app exit).
+func (sc *StudioController) GetStudioCmd() *commands.Command {
+	return sc.studioCmd
+}
+
+// Studio toggles Prisma Studio
+func (sc *StudioController) Studio() {
+	tr := sc.c.GetTranslationSet()
 
 	// Check if Studio is already running
-	if a.studioRunning {
+	if sc.studioRunning.Load() {
 		// Stop Studio
-		if a.studioCmd != nil {
-			if err := a.studioCmd.Kill(); err != nil {
-				outputPanel.LogAction(a.Tr.LogActionStudio, a.Tr.ModalMsgFailedStopStudio+" "+err.Error())
-				modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleStudioError,
-					a.Tr.ModalMsgFailedStopStudio,
+		if sc.studioCmd != nil {
+			if err := sc.studioCmd.Kill(); err != nil {
+				sc.outputCtx.LogAction(tr.LogActionStudio, tr.ModalMsgFailedStopStudio+" "+err.Error())
+				modal := NewMessageModal(sc.g, tr, tr.ModalTitleStudioError,
+					tr.ModalMsgFailedStopStudio,
 					err.Error(),
 				).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
-				a.OpenModal(modal)
+				sc.openModal(modal)
 				return
 			}
-			a.studioCmd = nil
+			sc.studioCmd = nil
 		}
-		a.studioRunning = false
-		outputPanel.LogAction(a.Tr.LogActionStudioStopped, a.Tr.LogMsgStudioHasStopped)
+		sc.studioRunning.Store(false)
+		sc.outputCtx.LogAction(tr.LogActionStudioStopped, tr.LogMsgStudioHasStopped)
 
 		// Clear subtitle
-		outputPanel.SetSubtitle("")
+		sc.outputCtx.SetSubtitle("")
 
 		// Update UI
-		a.g.Update(func(g *gocui.Gui) error {
+		sc.c.OnUIThread(func() error {
 			// Trigger redraw of status bar
 			return nil
 		})
 
-		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleStudioStopped,
-			a.Tr.ModalMsgStudioStopped,
+		modal := NewMessageModal(sc.g, tr, tr.ModalTitleStudioStopped,
+			tr.ModalMsgStudioStopped,
 		).WithStyle(MessageModalStyle{TitleColor: ColorYellow, BorderColor: ColorYellow})
-		a.OpenModal(modal)
+		sc.openModal(modal)
 		return
 	}
 
 	// Start Studio
 	// Try to start command - if another command is running, block
-	if !a.tryStartCommand("Start Studio") {
-		a.logCommandBlocked("Start Studio")
+	if !sc.c.TryStartCommand("Start Studio") {
+		sc.c.LogCommandBlocked("Start Studio")
 		return
 	}
 
 	// Get current working directory
 	cwd, err := os.Getwd()
 	if err != nil {
-		a.finishCommand()
-		outputPanel.LogAction(a.Tr.LogActionStudio, a.Tr.ErrorFailedGetWorkingDir+" "+err.Error())
-		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleStudioError,
-			a.Tr.ErrorFailedGetWorkingDir,
+		sc.c.FinishCommand()
+		sc.outputCtx.LogAction(tr.LogActionStudio, tr.ErrorFailedGetWorkingDir+" "+err.Error())
+		modal := NewMessageModal(sc.g, tr, tr.ModalTitleStudioError,
+			tr.ErrorFailedGetWorkingDir,
 			err.Error(),
 		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
-		a.OpenModal(modal)
+		sc.openModal(modal)
 		return
 	}
 
 	// Log action start
-	outputPanel.LogAction(a.Tr.LogActionStudio, a.Tr.LogMsgStartingStudio)
+	sc.outputCtx.LogAction(tr.LogActionStudio, tr.LogMsgStartingStudio)
 
 	// Create command builder
 	builder := commands.NewCommandBuilder(commands.NewPlatform())
 
 	// Build prisma studio command
-	// Note: We don't use StreamOutput here because Studio is a long-running process
-	// and we want to capture the command object to kill it later
 	studioCmd := builder.New("npx", "prisma", "studio").
 		WithWorkingDir(cwd)
 
 	// Start async
 	if err := studioCmd.RunAsync(); err != nil {
-		a.finishCommand()
-		outputPanel.LogAction(a.Tr.LogActionStudio, a.Tr.ModalMsgFailedStartStudio+" "+err.Error())
-		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleStudioError,
-			a.Tr.ModalMsgFailedStartStudio,
+		sc.c.FinishCommand()
+		sc.outputCtx.LogAction(tr.LogActionStudio, tr.ModalMsgFailedStartStudio+" "+err.Error())
+		modal := NewMessageModal(sc.g, tr, tr.ModalTitleStudioError,
+			tr.ModalMsgFailedStartStudio,
 			err.Error(),
 		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
-		a.OpenModal(modal)
+		sc.openModal(modal)
 		return
 	}
 
 	// Mark studio as running immediately to prevent double-start
-	a.studioRunning = true
-	a.studioCmd = studioCmd
+	sc.studioRunning.Store(true)
+	sc.studioCmd = studioCmd
 
 	// Wait a bit to ensure it started, then finish the "starting" command
-	// The process continues running in background
 	go func() {
 		time.Sleep(2 * time.Second)
-		a.g.Update(func(g *gocui.Gui) error {
-			a.finishCommand() // Finish "starting" command
+		sc.c.OnUIThread(func() error {
+			sc.c.FinishCommand() // Finish "starting" command
 
-			outputPanel.LogAction(a.Tr.LogActionStudioStarted, a.Tr.LogMsgStudioListeningAt)
-			outputPanel.SetSubtitle(a.Tr.LogMsgStudioListeningAt)
+			sc.outputCtx.LogAction(tr.LogActionStudioStarted, tr.LogMsgStudioListeningAt)
+			sc.outputCtx.SetSubtitle(tr.LogMsgStudioListeningAt)
 
 			// Show info modal
-			modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleStudioStarted,
-				a.Tr.ModalMsgStudioRunningAt,
-				a.Tr.ModalMsgPressStopStudio,
+			modal := NewMessageModal(sc.g, tr, tr.ModalTitleStudioStarted,
+				tr.ModalMsgStudioRunningAt,
+				tr.ModalMsgPressStopStudio,
 			).WithStyle(MessageModalStyle{TitleColor: ColorGreen, BorderColor: ColorGreen})
-			a.OpenModal(modal)
+			sc.openModal(modal)
 			return nil
 		})
 	}()

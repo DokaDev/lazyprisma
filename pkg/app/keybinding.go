@@ -191,7 +191,7 @@ func (a *App) RegisterKeybindings() error {
 		if a.HasActiveModal() {
 			return nil
 		}
-		a.MigrateDev()
+		a.migrationsController.MigrateDev()
 		return nil
 	}); err != nil {
 		return err
@@ -202,7 +202,7 @@ func (a *App) RegisterKeybindings() error {
 		if a.HasActiveModal() {
 			return nil
 		}
-		a.MigrateDeploy()
+		a.migrationsController.MigrateDeploy()
 		return nil
 	}); err != nil {
 		return err
@@ -213,7 +213,7 @@ func (a *App) RegisterKeybindings() error {
 		if a.HasActiveModal() {
 			return nil
 		}
-		a.Generate()
+		a.generateController.Generate()
 		return nil
 	}); err != nil {
 		return err
@@ -224,7 +224,7 @@ func (a *App) RegisterKeybindings() error {
 		if a.HasActiveModal() {
 			return nil
 		}
-		a.MigrateResolve()
+		a.migrationsController.MigrateResolve()
 		return nil
 	}); err != nil {
 		return err
@@ -235,7 +235,7 @@ func (a *App) RegisterKeybindings() error {
 		if a.HasActiveModal() {
 			return nil
 		}
-		a.Studio()
+		a.studioController.Studio()
 		return nil
 	}); err != nil {
 		return err
@@ -246,7 +246,7 @@ func (a *App) RegisterKeybindings() error {
 		if a.HasActiveModal() {
 			return nil
 		}
-		a.CopyMigrationInfo()
+		a.clipboardController.CopyMigrationInfo()
 		return nil
 	}); err != nil {
 		return err
@@ -257,7 +257,7 @@ func (a *App) RegisterKeybindings() error {
 		if a.HasActiveModal() {
 			return nil
 		}
-		a.DeleteMigration()
+		a.migrationsController.DeleteMigration()
 		return nil
 	}
 

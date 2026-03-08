@@ -64,3 +64,18 @@ type IGuiCommon interface {
 	// GetTranslationSet returns the current translation set.
 	GetTranslationSet() *i18n.TranslationSet
 }
+
+// IControllerHost is the interface controllers use to interact with the application.
+// It extends IGuiCommon with command lifecycle and refresh methods.
+type IControllerHost interface {
+	IGuiCommon
+
+	// Command lifecycle
+	TryStartCommand(name string) bool
+	LogCommandBlocked(name string)
+	FinishCommand()
+
+	// Full refresh with callbacks
+	RefreshAll(onComplete ...func()) bool
+	RefreshPanels()
+}

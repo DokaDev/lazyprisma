@@ -9,6 +9,7 @@ import (
 
 // Compile-time interface satisfaction checks.
 var _ types.IGuiCommon = (*App)(nil)
+var _ types.IControllerHost = (*App)(nil)
 
 // --- IPopupHandler methods ---
 

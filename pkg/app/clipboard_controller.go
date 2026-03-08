@@ -4,38 +4,62 @@ import (
 	"fmt"
 
 	"github.com/dokadev/lazyprisma/pkg/gui/context"
+	"github.com/dokadev/lazyprisma/pkg/gui/types"
+	"github.com/jesseduffield/gocui"
 )
 
-// CopyMigrationInfo copies migration info to clipboard
-func (a *App) CopyMigrationInfo() {
-	// Get migrations panel
-	migrationsPanel, ok := a.panels[ViewMigrations].(*context.MigrationsContext)
-	if !ok {
-		return
+// ClipboardController handles clipboard-related operations.
+type ClipboardController struct {
+	c             types.IControllerHost
+	g             *gocui.Gui
+	migrationsCtx *context.MigrationsContext
+	openModal     func(Modal)
+	closeModal    func()
+}
+
+// NewClipboardController creates a new ClipboardController.
+func NewClipboardController(
+	c types.IControllerHost,
+	g *gocui.Gui,
+	migrationsCtx *context.MigrationsContext,
+	openModal func(Modal),
+	closeModal func(),
+) *ClipboardController {
+	return &ClipboardController{
+		c:             c,
+		g:             g,
+		migrationsCtx: migrationsCtx,
+		openModal:     openModal,
+		closeModal:    closeModal,
 	}
+}
+
+// CopyMigrationInfo copies migration info to clipboard
+func (cc *ClipboardController) CopyMigrationInfo() {
+	tr := cc.c.GetTranslationSet()
 
 	// Get selected migration
-	selected := migrationsPanel.GetSelectedMigration()
+	selected := cc.migrationsCtx.GetSelectedMigration()
 	if selected == nil {
 		return
 	}
 
 	items := []ListModalItem{
 		{
-			Label:       a.Tr.ListItemCopyName,
+			Label:       tr.ListItemCopyName,
 			Description: selected.Name,
 			OnSelect: func() error {
-				a.CloseModal()
-				a.copyTextToClipboard(selected.Name, a.Tr.CopyLabelMigrationName)
+				cc.closeModal()
+				cc.copyTextToClipboard(selected.Name, tr.CopyLabelMigrationName)
 				return nil
 			},
 		},
 		{
-			Label:       a.Tr.ListItemCopyPath,
+			Label:       tr.ListItemCopyPath,
 			Description: selected.Path,
 			OnSelect: func() error {
-				a.CloseModal()
-				a.copyTextToClipboard(selected.Path, a.Tr.CopyLabelMigrationPath)
+				cc.closeModal()
+				cc.copyTextToClipboard(selected.Path, tr.CopyLabelMigrationPath)
 				return nil
 			},
 		},
@@ -44,39 +68,40 @@ func (a *App) CopyMigrationInfo() {
 	// If it has a checksum, allow copying it
 	if selected.Checksum != "" {
 		items = append(items, ListModalItem{
-			Label:       a.Tr.ListItemCopyChecksum,
+			Label:       tr.ListItemCopyChecksum,
 			Description: selected.Checksum,
 			OnSelect: func() error {
-				a.CloseModal()
-				a.copyTextToClipboard(selected.Checksum, a.Tr.CopyLabelChecksum)
+				cc.closeModal()
+				cc.copyTextToClipboard(selected.Checksum, tr.CopyLabelChecksum)
 				return nil
 			},
 		})
 	}
 
-	modal := NewListModal(a.g, a.Tr, a.Tr.ModalTitleCopyToClipboard, items,
+	modal := NewListModal(cc.g, tr, tr.ModalTitleCopyToClipboard, items,
 		func() {
-			a.CloseModal()
+			cc.closeModal()
 		},
 	).WithStyle(MessageModalStyle{TitleColor: ColorCyan, BorderColor: ColorCyan})
 
-	a.OpenModal(modal)
+	cc.openModal(modal)
 }
 
-func (a *App) copyTextToClipboard(text, label string) {
+func (cc *ClipboardController) copyTextToClipboard(text, label string) {
+	tr := cc.c.GetTranslationSet()
+
 	if err := CopyToClipboard(text); err != nil {
-		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleClipboardError,
-			a.Tr.ModalMsgFailedCopyClipboard,
+		modal := NewMessageModal(cc.g, tr, tr.ModalTitleClipboardError,
+			tr.ModalMsgFailedCopyClipboard,
 			err.Error(),
 		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
-		a.OpenModal(modal)
+		cc.openModal(modal)
 		return
 	}
 
 	// Show toast/notification via modal for now
-	// Ideally we would have a toast system
-	modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleCopied,
-		fmt.Sprintf(a.Tr.ModalMsgCopiedToClipboard, label),
+	modal := NewMessageModal(cc.g, tr, tr.ModalTitleCopied,
+		fmt.Sprintf(tr.ModalMsgCopiedToClipboard, label),
 	).WithStyle(MessageModalStyle{TitleColor: ColorGreen, BorderColor: ColorGreen})
-	a.OpenModal(modal)
+	cc.openModal(modal)
 }

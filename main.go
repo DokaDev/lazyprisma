@@ -112,6 +112,30 @@ func main() {
 	tuiApp.RegisterPanel(output)
 	tuiApp.RegisterPanel(statusbar)
 
+	// Create and wire controllers
+	gui := tuiApp.GetGui()
+
+	migrationsController := app.NewMigrationsController(
+		tuiApp, gui, migrationsCtx, output,
+		tuiApp.OpenModal, tuiApp.CloseModal,
+		tuiApp.RunStreamingCommand,
+	)
+	generateController := app.NewGenerateController(
+		tuiApp, gui, output,
+		tuiApp.OpenModal,
+		tuiApp.RunStreamingCommand,
+	)
+	studioController := app.NewStudioController(
+		tuiApp, gui, output,
+		tuiApp.OpenModal,
+	)
+	clipboardController := app.NewClipboardController(
+		tuiApp, gui, migrationsCtx,
+		tuiApp.OpenModal, tuiApp.CloseModal,
+	)
+
+	tuiApp.SetControllers(migrationsController, generateController, studioController, clipboardController)
+
 	// Register keybindings
 	if err := tuiApp.RegisterKeybindings(); err != nil {
 		fmt.Fprintf(os.Stderr, tr.ErrorFailedRegisterKeybindings, err)
