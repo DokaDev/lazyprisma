@@ -1,6 +1,7 @@
 package context
 
 import (
+	"github.com/dokadev/lazyprisma/pkg/gui/style"
 	"github.com/dokadev/lazyprisma/pkg/gui/types"
 	"github.com/jesseduffield/gocui"
 )
@@ -11,6 +12,7 @@ type BaseContext struct {
 	viewName  string
 	view      *gocui.View
 	focusable bool
+	focused   bool
 	title     string
 
 	// Lifecycle hooks (multiple can attach)
@@ -102,4 +104,40 @@ func (self *BaseContext) AddOnFocusLostFn(fn func(types.OnFocusLostOpts)) {
 	if fn != nil {
 		self.onFocusLostFns = append(self.onFocusLostFns, fn)
 	}
+}
+
+// IsFocused returns whether this context currently has focus.
+func (self *BaseContext) IsFocused() bool {
+	return self.focused
+}
+
+// SetFocused sets the focus state directly (without applying styles).
+func (self *BaseContext) SetFocused(f bool) {
+	self.focused = f
+}
+
+// ApplyFocusStyle sets the view's frame and title colours based on the
+// current focus state. Safe to call when the view is nil.
+func (self *BaseContext) ApplyFocusStyle() {
+	if v := self.view; v != nil {
+		if self.focused {
+			v.FrameColor = style.FocusedFrameColor
+			v.TitleColor = style.FocusedTitleColor
+		} else {
+			v.FrameColor = style.PrimaryFrameColor
+			v.TitleColor = style.PrimaryTitleColor
+		}
+	}
+}
+
+// OnFocus marks this context as focused and applies the focused style.
+func (self *BaseContext) OnFocus() {
+	self.focused = true
+	self.ApplyFocusStyle()
+}
+
+// OnBlur marks this context as unfocused and applies the primary style.
+func (self *BaseContext) OnBlur() {
+	self.focused = false
+	self.ApplyFocusStyle()
 }

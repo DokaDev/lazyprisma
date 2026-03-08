@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/dokadev/lazyprisma/pkg/gui/context"
+	"github.com/dokadev/lazyprisma/pkg/gui/types"
 	"github.com/jesseduffield/gocui"
 )
 
@@ -9,8 +9,8 @@ func (a *App) RegisterKeybindings() error {
 	// Quit or close modal (lowercase q)
 	if err := a.g.SetKeybinding("", 'q', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		if a.HasActiveModal() {
-			// InputModal uses 'q' for text input, not for closing
-			if _, ok := a.activeModal.(*InputModal); !ok {
+			// Modals that accept text input use 'q' for typing, not for closing
+			if !a.activeModal.AcceptsTextInput() {
 				a.CloseModal()
 				return nil
 			}
@@ -48,10 +48,8 @@ func (a *App) RegisterKeybindings() error {
 		}
 		// Check if current panel supports tabs
 		if panel := a.GetCurrentPanel(); panel != nil {
-			if migrationsPanel, ok := panel.(*context.MigrationsContext); ok {
-				migrationsPanel.NextTab()
-			} else if detailsPanel, ok := panel.(*context.DetailsContext); ok {
-				detailsPanel.NextTab()
+			if tabbedPanel, ok := panel.(types.ITabbedContext); ok {
+				tabbedPanel.NextTab()
 			}
 		}
 		return nil
@@ -66,10 +64,8 @@ func (a *App) RegisterKeybindings() error {
 		}
 		// Check if current panel supports tabs
 		if panel := a.GetCurrentPanel(); panel != nil {
-			if migrationsPanel, ok := panel.(*context.MigrationsContext); ok {
-				migrationsPanel.PrevTab()
-			} else if detailsPanel, ok := panel.(*context.DetailsContext); ok {
-				detailsPanel.PrevTab()
+			if tabbedPanel, ok := panel.(types.ITabbedContext); ok {
+				tabbedPanel.PrevTab()
 			}
 		}
 		return nil
@@ -103,17 +99,12 @@ func (a *App) RegisterKeybindings() error {
 		if a.HasActiveModal() {
 			return a.activeModal.HandleKey(gocui.KeyArrowUp, gocui.ModNone)
 		}
-		// Handle different panel types
+		// IListContext (e.g. MigrationsContext) takes priority over IScrollableContext
 		if panel := a.GetCurrentPanel(); panel != nil {
-			switch p := panel.(type) {
-			case *context.MigrationsContext:
-				p.SelectPrev()
-			case *context.WorkspaceContext:
-				p.ScrollUp()
-			case *context.DetailsContext:
-				p.ScrollUp()
-			case *context.OutputContext:
-				p.ScrollUp()
+			if listPanel, ok := panel.(types.IListContext); ok {
+				listPanel.SelectPrev()
+			} else if scrollPanel, ok := panel.(types.IScrollableContext); ok {
+				scrollPanel.ScrollUp()
 			}
 		}
 		return nil
@@ -125,17 +116,12 @@ func (a *App) RegisterKeybindings() error {
 		if a.HasActiveModal() {
 			return a.activeModal.HandleKey(gocui.KeyArrowDown, gocui.ModNone)
 		}
-		// Handle different panel types
+		// IListContext (e.g. MigrationsContext) takes priority over IScrollableContext
 		if panel := a.GetCurrentPanel(); panel != nil {
-			switch p := panel.(type) {
-			case *context.MigrationsContext:
-				p.SelectNext()
-			case *context.WorkspaceContext:
-				p.ScrollDown()
-			case *context.DetailsContext:
-				p.ScrollDown()
-			case *context.OutputContext:
-				p.ScrollDown()
+			if listPanel, ok := panel.(types.IListContext); ok {
+				listPanel.SelectNext()
+			} else if scrollPanel, ok := panel.(types.IScrollableContext); ok {
+				scrollPanel.ScrollDown()
 			}
 		}
 		return nil
@@ -146,8 +132,8 @@ func (a *App) RegisterKeybindings() error {
 	// Enter key for modal
 	if err := a.g.SetKeybinding("", gocui.KeyEnter, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		if a.HasActiveModal() {
-			// MessageModal: close on Enter
-			if _, ok := a.activeModal.(*MessageModal); ok {
+			// Modals that close on Enter (e.g. MessageModal) are dismissed directly
+			if a.activeModal.ClosesOnEnter() {
 				a.CloseModal()
 				return nil
 			}
@@ -164,17 +150,9 @@ func (a *App) RegisterKeybindings() error {
 		if a.HasActiveModal() {
 			return a.activeModal.HandleKey(gocui.KeyHome, gocui.ModNone)
 		}
-		// Handle different panel types
 		if panel := a.GetCurrentPanel(); panel != nil {
-			switch p := panel.(type) {
-			case *context.MigrationsContext:
-				p.ScrollToTop()
-			case *context.WorkspaceContext:
-				p.ScrollToTop()
-			case *context.DetailsContext:
-				p.ScrollToTop()
-			case *context.OutputContext:
-				p.ScrollToTop()
+			if scrollPanel, ok := panel.(types.IScrollableContext); ok {
+				scrollPanel.ScrollToTop()
 			}
 		}
 		return nil
@@ -187,17 +165,9 @@ func (a *App) RegisterKeybindings() error {
 		if a.HasActiveModal() {
 			return a.activeModal.HandleKey(gocui.KeyEnd, gocui.ModNone)
 		}
-		// Handle different panel types
 		if panel := a.GetCurrentPanel(); panel != nil {
-			switch p := panel.(type) {
-			case *context.MigrationsContext:
-				p.ScrollToBottom()
-			case *context.WorkspaceContext:
-				p.ScrollToBottom()
-			case *context.DetailsContext:
-				p.ScrollToBottom()
-			case *context.OutputContext:
-				p.ScrollToBottom()
+			if scrollPanel, ok := panel.(types.IScrollableContext); ok {
+				scrollPanel.ScrollToBottom()
 			}
 		}
 		return nil
@@ -221,7 +191,7 @@ func (a *App) RegisterKeybindings() error {
 		if a.HasActiveModal() {
 			return nil
 		}
-		a.MigrateDev()
+		a.migrationsController.MigrateDev()
 		return nil
 	}); err != nil {
 		return err
@@ -232,7 +202,7 @@ func (a *App) RegisterKeybindings() error {
 		if a.HasActiveModal() {
 			return nil
 		}
-		a.MigrateDeploy()
+		a.migrationsController.MigrateDeploy()
 		return nil
 	}); err != nil {
 		return err
@@ -243,7 +213,7 @@ func (a *App) RegisterKeybindings() error {
 		if a.HasActiveModal() {
 			return nil
 		}
-		a.Generate()
+		a.generateController.Generate()
 		return nil
 	}); err != nil {
 		return err
@@ -254,7 +224,7 @@ func (a *App) RegisterKeybindings() error {
 		if a.HasActiveModal() {
 			return nil
 		}
-		a.MigrateResolve()
+		a.migrationsController.MigrateResolve()
 		return nil
 	}); err != nil {
 		return err
@@ -265,7 +235,7 @@ func (a *App) RegisterKeybindings() error {
 		if a.HasActiveModal() {
 			return nil
 		}
-		a.Studio()
+		a.studioController.Studio()
 		return nil
 	}); err != nil {
 		return err
@@ -276,7 +246,7 @@ func (a *App) RegisterKeybindings() error {
 		if a.HasActiveModal() {
 			return nil
 		}
-		a.CopyMigrationInfo()
+		a.clipboardController.CopyMigrationInfo()
 		return nil
 	}); err != nil {
 		return err
@@ -287,7 +257,7 @@ func (a *App) RegisterKeybindings() error {
 		if a.HasActiveModal() {
 			return nil
 		}
-		a.DeleteMigration()
+		a.migrationsController.DeleteMigration()
 		return nil
 	}
 

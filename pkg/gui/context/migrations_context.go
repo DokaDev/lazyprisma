@@ -14,33 +14,14 @@ import (
 	"github.com/jesseduffield/lazycore/pkg/boxlayout"
 )
 
-// Frame and title styling constants (matching app.panel.go values)
-var (
-	migDefaultFrameRunes = []rune{'─', '│', '╭', '╮', '╰', '╯'}
-
-	migPrimaryFrameColor = gocui.ColorWhite
-	migFocusedFrameColor = gocui.ColorGreen
-
-	migPrimaryTitleColor = gocui.ColorWhite | gocui.AttrNone
-	migFocusedTitleColor = gocui.ColorGreen | gocui.AttrBold
-
-	// Tab styling
-	migFocusedActiveTabColor = gocui.ColorGreen | gocui.AttrBold
-	migPrimaryActiveTabColor = gocui.ColorGreen | gocui.AttrNone
-
-	// List selection colour
-	migSelectionBgColor = gocui.ColorBlue
-)
-
 // MigrationsContext manages the migrations list with tabs (Local, Pending, DB-Only).
 type MigrationsContext struct {
 	*SimpleContext
 	*ScrollableTrait
 	*TabbedTrait
 
-	g       *gocui.Gui
-	tr      *i18n.TranslationSet
-	focused bool
+	g  *gocui.Gui
+	tr *i18n.TranslationSet
 
 	// Data
 	category    prisma.MigrationCategory // Categorised migrations
@@ -154,28 +135,6 @@ func (m *MigrationsContext) IsDBConnected() bool {
 }
 
 // ---------------------------------------------------------------------------
-// Focus / Blur
-// ---------------------------------------------------------------------------
-
-// OnFocus handles focus gain (Panel interface compatibility).
-func (m *MigrationsContext) OnFocus() {
-	m.focused = true
-	if v := m.BaseContext.GetView(); v != nil {
-		v.FrameColor = migFocusedFrameColor
-		v.TitleColor = migFocusedTitleColor
-	}
-}
-
-// OnBlur handles focus loss (Panel interface compatibility).
-func (m *MigrationsContext) OnBlur() {
-	m.focused = false
-	if v := m.BaseContext.GetView(); v != nil {
-		v.FrameColor = migPrimaryFrameColor
-		v.TitleColor = migPrimaryTitleColor
-	}
-}
-
-// ---------------------------------------------------------------------------
 // Draw
 // ---------------------------------------------------------------------------
 
@@ -192,7 +151,7 @@ func (m *MigrationsContext) Draw(dim boxlayout.Dimensions) error {
 
 	v.Clear()
 	v.Frame = true
-	v.FrameRunes = migDefaultFrameRunes
+	v.FrameRunes = style.DefaultFrameRunes
 
 	// Set tabs
 	tabs := m.TabbedTrait.GetTabs()
@@ -205,27 +164,27 @@ func (m *MigrationsContext) Draw(dim boxlayout.Dimensions) error {
 	v.Subtitle = ""
 
 	// Frame and tab colours based on focus
-	if m.focused {
-		v.FrameColor = migFocusedFrameColor
-		v.TitleColor = migFocusedTitleColor
+	if m.IsFocused() {
+		v.FrameColor = style.FocusedFrameColor
+		v.TitleColor = style.FocusedTitleColor
 		if len(tabs) == 1 {
-			v.SelFgColor = migFocusedTitleColor
+			v.SelFgColor = style.FocusedTitleColor
 		} else {
-			v.SelFgColor = migFocusedActiveTabColor
+			v.SelFgColor = style.FocusedActiveTabColor
 		}
 	} else {
-		v.FrameColor = migPrimaryFrameColor
-		v.TitleColor = migPrimaryTitleColor
+		v.FrameColor = style.PrimaryFrameColor
+		v.TitleColor = style.PrimaryTitleColor
 		if len(tabs) == 1 {
-			v.SelFgColor = migPrimaryTitleColor
+			v.SelFgColor = style.PrimaryTitleColor
 		} else {
-			v.SelFgColor = migPrimaryActiveTabColor
+			v.SelFgColor = style.PrimaryActiveTabColor
 		}
 	}
 
 	// Enable highlight for selection
 	v.Highlight = true
-	v.SelBgColor = migSelectionBgColor
+	v.SelBgColor = style.SelectionBgColor
 
 	// Render items
 	for _, item := range m.items {

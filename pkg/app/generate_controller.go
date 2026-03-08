@@ -2,185 +2,126 @@ package app
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
-	"github.com/dokadev/lazyprisma/pkg/commands"
 	"github.com/dokadev/lazyprisma/pkg/gui/context"
+	"github.com/dokadev/lazyprisma/pkg/gui/types"
 	"github.com/dokadev/lazyprisma/pkg/prisma"
 	"github.com/jesseduffield/gocui"
 )
 
+// GenerateController handles prisma generate operations.
+type GenerateController struct {
+	c             types.IControllerHost
+	g             *gocui.Gui
+	outputCtx     *context.OutputContext
+	openModal     func(Modal)
+	runStreamCmd  func(AsyncCommandOpts) bool
+}
+
+// NewGenerateController creates a new GenerateController.
+func NewGenerateController(
+	c types.IControllerHost,
+	g *gocui.Gui,
+	outputCtx *context.OutputContext,
+	openModal func(Modal),
+	runStreamCmd func(AsyncCommandOpts) bool,
+) *GenerateController {
+	return &GenerateController{
+		c:            c,
+		g:            g,
+		outputCtx:    outputCtx,
+		openModal:    openModal,
+		runStreamCmd: runStreamCmd,
+	}
+}
+
 // Generate runs prisma generate and shows result in modal
-func (a *App) Generate() {
-	// Try to start command - if another command is running, block
-	if !a.tryStartCommand("Generate") {
-		a.logCommandBlocked("Generate")
-		return
-	}
+func (gc *GenerateController) Generate() {
+	tr := gc.c.GetTranslationSet()
 
-	outputPanel, ok := a.panels[ViewOutputs].(*context.OutputContext)
-	if !ok {
-		a.finishCommand() // Clean up if panel not found
-		return
-	}
+	gc.runStreamCmd(AsyncCommandOpts{
+		Name:          "Generate",
+		Args:          []string{"npx", "prisma", "generate"},
+		LogAction:     tr.LogActionGenerate,
+		LogDetail:     tr.LogMsgRunningGenerate,
+		ErrorTitle:    tr.ModalTitleGenerateError,
+		ErrorStartMsg: tr.ModalMsgFailedStartGenerate,
+		OnSuccess: func(out *context.OutputContext, cwd string) {
+			gc.c.FinishCommand() // Finish immediately on success
+			out.LogAction(tr.LogActionGenerateComplete, tr.LogMsgPrismaClientGeneratedSuccess)
+			modal := NewMessageModal(gc.g, tr, tr.ModalTitleGenerateSuccess,
+				tr.ModalMsgPrismaClientGenerated,
+			).WithStyle(MessageModalStyle{TitleColor: ColorGreen, BorderColor: ColorGreen})
+			gc.openModal(modal)
+		},
+		OnFailure: func(out *context.OutputContext, cwd string, exitCode int) {
+			// Don't finishCommand yet -- validate first (keep spinner running)
+			out.LogAction(tr.LogActionGenerateFailed, tr.LogMsgCheckingSchemaErrors)
 
-	// Get current working directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		a.finishCommand()
-		outputPanel.LogAction(a.Tr.LogActionGenerateError, a.Tr.ErrorFailedGetWorkingDir+" "+err.Error())
-		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleGenerateError,
-			a.Tr.ErrorFailedGetWorkingDir,
-			err.Error(),
-		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
-		a.OpenModal(modal)
-		return
-	}
+			go func() {
+				validateResult, err := prisma.Validate(cwd)
 
-	// Log action start
-	outputPanel.LogAction(a.Tr.LogActionGenerate, a.Tr.LogMsgRunningGenerate)
+				gc.c.OnUIThread(func() error {
+					gc.c.FinishCommand() // Finish after validate completes
 
-	// Create command builder
-	builder := commands.NewCommandBuilder(commands.NewPlatform())
-
-	// Build prisma generate command
-	generateCmd := builder.New("npx", "prisma", "generate").
-		WithWorkingDir(cwd).
-		StreamOutput().
-		OnStdout(func(line string) {
-			// Update UI on main thread
-			a.g.Update(func(g *gocui.Gui) error {
-				if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
-					out.AppendOutput("  " + line)
-				}
-				return nil
-			})
-		}).
-		OnStderr(func(line string) {
-			// Update UI on main thread
-			a.g.Update(func(g *gocui.Gui) error {
-				if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
-					out.AppendOutput("  " + line)
-				}
-				return nil
-			})
-		}).
-		OnComplete(func(exitCode int) {
-			// Update UI on main thread
-			a.g.Update(func(g *gocui.Gui) error {
-				if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
-					if exitCode == 0 {
-						a.finishCommand() // Finish immediately on success
-						out.LogAction(a.Tr.LogActionGenerateComplete, a.Tr.LogMsgPrismaClientGeneratedSuccess)
-						// Show success modal
-						modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleGenerateSuccess,
-							a.Tr.ModalMsgPrismaClientGenerated,
-						).WithStyle(MessageModalStyle{TitleColor: ColorGreen, BorderColor: ColorGreen})
-						a.OpenModal(modal)
-					} else {
-						// Failed - run validate to check schema (keep spinner running)
-						out.LogAction(a.Tr.LogActionGenerateFailed, a.Tr.LogMsgCheckingSchemaErrors)
-
-						// Run validate in goroutine to not block UI updates
-						go func() {
-							validateResult, err := prisma.Validate(cwd)
-
-							// Update UI on main thread after validate completes
-							a.g.Update(func(g *gocui.Gui) error {
-								a.finishCommand() // Finish after validate completes
-
-								if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
-									if err == nil && !validateResult.Valid {
-										// Schema has validation errors - show them
-										out.LogAction(a.Tr.LogActionSchemaValidationFailed, fmt.Sprintf(a.Tr.LogMsgFoundSchemaErrors, len(validateResult.Errors)))
-
-										// Show validation errors in modal
-										modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleSchemaValidationFailed,
-											a.Tr.ModalMsgGenerateFailedSchemaErrors,
-										).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
-										a.OpenModal(modal)
-									} else {
-										// Schema is valid but generate failed for other reasons
-										out.LogAction(a.Tr.LogActionGenerateFailed, fmt.Sprintf(a.Tr.ModalMsgGenerateFailedWithCode, exitCode))
-										modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleGenerateFailed,
-											fmt.Sprintf(a.Tr.ModalMsgGenerateFailedWithCode, exitCode),
-											a.Tr.ModalMsgSchemaValidCheckOutput,
-										).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
-										a.OpenModal(modal)
-									}
-								}
-								return nil
-							})
-						}()
-					}
-				}
-				return nil
-			})
-		}).
-		OnError(func(err error) {
-			// Update UI on main thread
-			a.g.Update(func(g *gocui.Gui) error {
-				if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
-					// Check if it's an exit status error (command ran but failed)
-					if strings.Contains(err.Error(), "exit status") {
-						// Failed - run validate to check schema (keep spinner running)
-						out.LogAction(a.Tr.LogActionGenerateFailed, a.Tr.LogMsgCheckingSchemaErrors)
-
-						// Run validate in goroutine to not block UI updates
-						go func() {
-							validateResult, validateErr := prisma.Validate(cwd)
-
-							// Update UI on main thread after validate completes
-							a.g.Update(func(g *gocui.Gui) error {
-								a.finishCommand() // Finish after validate completes
-
-								if out, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
-									if validateErr == nil && !validateResult.Valid {
-										// Schema has validation errors - show them
-										out.LogAction(a.Tr.LogActionSchemaValidationFailed, fmt.Sprintf(a.Tr.LogMsgFoundSchemaErrors, len(validateResult.Errors)))
-
-										// Show validation errors in modal
-										modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleSchemaValidationFailed,
-											a.Tr.ModalMsgGenerateFailedSchemaErrors,
-										).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
-										a.OpenModal(modal)
-									} else {
-										// Schema is valid but generate failed for other reasons
-										out.LogAction(a.Tr.LogActionGenerateFailed, err.Error())
-										modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleGenerateFailed,
-											a.Tr.ModalMsgFailedRunGenerate,
-											a.Tr.ModalMsgSchemaValidCheckOutput,
-										).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
-										a.OpenModal(modal)
-									}
-								}
-								return nil
-							})
-						}()
-					} else {
-						// Other error (command couldn't start, etc.)
-						a.finishCommand() // Finish immediately on startup error
-						out.LogAction(a.Tr.LogActionGenerateError, err.Error())
-						modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleGenerateError,
-							a.Tr.ModalMsgFailedRunGenerate,
-							err.Error(),
+					if err == nil && !validateResult.Valid {
+						gc.outputCtx.LogAction(tr.LogActionSchemaValidationFailed, fmt.Sprintf(tr.LogMsgFoundSchemaErrors, len(validateResult.Errors)))
+						modal := NewMessageModal(gc.g, tr, tr.ModalTitleSchemaValidationFailed,
+							tr.ModalMsgGenerateFailedSchemaErrors,
 						).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
-						a.OpenModal(modal)
+						gc.openModal(modal)
+					} else {
+						gc.outputCtx.LogAction(tr.LogActionGenerateFailed, fmt.Sprintf(tr.ModalMsgGenerateFailedWithCode, exitCode))
+						modal := NewMessageModal(gc.g, tr, tr.ModalTitleGenerateFailed,
+							fmt.Sprintf(tr.ModalMsgGenerateFailedWithCode, exitCode),
+							tr.ModalMsgSchemaValidCheckOutput,
+						).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
+						gc.openModal(modal)
 					}
-				}
-				return nil
-			})
-		})
+					return nil
+				})
+			}()
+		},
+		OnError: func(out *context.OutputContext, cwd string, err error) {
+			// Check if it's an exit status error (command ran but failed)
+			if strings.Contains(err.Error(), "exit status") {
+				// Don't finishCommand yet -- validate first (keep spinner running)
+				out.LogAction(tr.LogActionGenerateFailed, tr.LogMsgCheckingSchemaErrors)
 
-	// Run async to avoid blocking UI (spinner will show automatically)
-	if err := generateCmd.RunAsync(); err != nil {
-		a.finishCommand() // Clean up if command fails to start
-		outputPanel.LogAction(a.Tr.LogActionGenerateError, a.Tr.ModalMsgFailedStartGenerate+" "+err.Error())
-		modal := NewMessageModal(a.g, a.Tr, a.Tr.ModalTitleGenerateError,
-			a.Tr.ModalMsgFailedStartGenerate,
-			err.Error(),
-		).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
-		a.OpenModal(modal)
-	}
+				go func() {
+					validateResult, validateErr := prisma.Validate(cwd)
+
+					gc.c.OnUIThread(func() error {
+						gc.c.FinishCommand() // Finish after validate completes
+
+						if validateErr == nil && !validateResult.Valid {
+							gc.outputCtx.LogAction(tr.LogActionSchemaValidationFailed, fmt.Sprintf(tr.LogMsgFoundSchemaErrors, len(validateResult.Errors)))
+							modal := NewMessageModal(gc.g, tr, tr.ModalTitleSchemaValidationFailed,
+								tr.ModalMsgGenerateFailedSchemaErrors,
+							).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
+							gc.openModal(modal)
+						} else {
+							gc.outputCtx.LogAction(tr.LogActionGenerateFailed, err.Error())
+							modal := NewMessageModal(gc.g, tr, tr.ModalTitleGenerateFailed,
+								tr.ModalMsgFailedRunGenerate,
+								tr.ModalMsgSchemaValidCheckOutput,
+							).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
+							gc.openModal(modal)
+						}
+						return nil
+					})
+				}()
+			} else {
+				// Other error (command couldn't start, etc.)
+				gc.c.FinishCommand() // Finish immediately on startup error
+				out.LogAction(tr.LogActionGenerateError, err.Error())
+				modal := NewMessageModal(gc.g, tr, tr.ModalTitleGenerateError,
+					tr.ModalMsgFailedRunGenerate,
+					err.Error(),
+				).WithStyle(MessageModalStyle{TitleColor: ColorRed, BorderColor: ColorRed})
+				gc.openModal(modal)
+			}
+		},
+	})
 }

@@ -14,9 +14,12 @@ type ConfirmOpts struct {
 
 // PromptOpts configures a text-input popup.
 type PromptOpts struct {
-	Title          string
-	InitialContent string
-	HandleConfirm  func(string) error
+	Title            string
+	InitialContent   string
+	HandleConfirm    func(string) error
+	Required         bool
+	Subtitle         string
+	OnValidationFail func(string)
 }
 
 // MenuItem is a single entry in a menu popup.
@@ -53,11 +56,26 @@ type IGuiCommon interface {
 	IPopupHandler
 
 	// LogAction logs a user-visible action to the output panel.
-	LogAction(action string)
+	LogAction(action string, detail ...string)
 	// Refresh triggers a data refresh and re-render of all contexts.
 	Refresh()
 	// OnUIThread schedules a function to run on the UI thread.
 	OnUIThread(f func() error)
 	// GetTranslationSet returns the current translation set.
 	GetTranslationSet() *i18n.TranslationSet
+}
+
+// IControllerHost is the interface controllers use to interact with the application.
+// It extends IGuiCommon with command lifecycle and refresh methods.
+type IControllerHost interface {
+	IGuiCommon
+
+	// Command lifecycle
+	TryStartCommand(name string) bool
+	LogCommandBlocked(name string)
+	FinishCommand()
+
+	// Full refresh with callbacks
+	RefreshAll(onComplete ...func()) bool
+	RefreshPanels()
 }

@@ -11,26 +11,14 @@ import (
 	"github.com/jesseduffield/lazycore/pkg/boxlayout"
 )
 
-// Frame and title styling constants (matching app.panel.go values)
-var (
-	outputDefaultFrameRunes = []rune{'─', '│', '╭', '╮', '╰', '╯'}
-
-	outputPrimaryFrameColor = gocui.ColorWhite
-	outputFocusedFrameColor = gocui.ColorGreen
-
-	outputPrimaryTitleColor = gocui.ColorWhite | gocui.AttrNone
-	outputFocusedTitleColor = gocui.ColorGreen | gocui.AttrBold
-)
-
 type OutputContext struct {
 	*SimpleContext
 	*ScrollableTrait
 
-	g       *gocui.Gui
-	tr      *i18n.TranslationSet
-	content string
+	g        *gocui.Gui
+	tr       *i18n.TranslationSet
+	content  string
 	subtitle string
-	focused  bool
 	autoScrollToBottom bool
 }
 
@@ -78,9 +66,9 @@ func (o *OutputContext) Draw(dim boxlayout.Dimensions) error {
 	}
 
 	// Setup view (replicates BasePanel.SetupView)
-	o.setupView(v)
-	o.SetView(v)           // BaseContext
+	o.SetView(v)                 // BaseContext (must be set before setupView for ApplyFocusStyle)
 	o.ScrollableTrait.SetView(v) // ScrollableTrait
+	o.setupView(v)
 
 	v.Subtitle = o.subtitle
 	v.Wrap = true
@@ -110,33 +98,8 @@ func (o *OutputContext) setupView(v *gocui.View) {
 	v.Clear()
 	v.Frame = true
 	v.Title = o.tr.PanelTitleOutput
-	v.FrameRunes = outputDefaultFrameRunes
-
-	if o.focused {
-		v.FrameColor = outputFocusedFrameColor
-		v.TitleColor = outputFocusedTitleColor
-	} else {
-		v.FrameColor = outputPrimaryFrameColor
-		v.TitleColor = outputPrimaryTitleColor
-	}
-}
-
-// OnFocus handles focus gain (implements Panel interface from app package)
-func (o *OutputContext) OnFocus() {
-	o.focused = true
-	if v := o.GetView(); v != nil {
-		v.FrameColor = outputFocusedFrameColor
-		v.TitleColor = outputFocusedTitleColor
-	}
-}
-
-// OnBlur handles focus loss (implements Panel interface from app package)
-func (o *OutputContext) OnBlur() {
-	o.focused = false
-	if v := o.GetView(); v != nil {
-		v.FrameColor = outputPrimaryFrameColor
-		v.TitleColor = outputPrimaryTitleColor
-	}
+	v.FrameRunes = style.DefaultFrameRunes
+	o.ApplyFocusStyle()
 }
 
 // AppendOutput appends text to the output buffer and flags auto-scroll

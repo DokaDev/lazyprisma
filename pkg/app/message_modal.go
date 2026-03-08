@@ -39,6 +39,9 @@ func (m *MessageModal) WithStyle(style MessageModalStyle) *MessageModal {
 	return m
 }
 
+// ClosesOnEnter returns true because MessageModal is dismissed with Enter.
+func (m *MessageModal) ClosesOnEnter() bool { return true }
+
 // Draw renders the modal
 func (m *MessageModal) Draw(dim boxlayout.Dimensions) error {
 	// Calculate width

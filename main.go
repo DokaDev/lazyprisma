@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	Version   = "v0.3.0"
+	Version   = "v0.3.1"
 	Developer = "DokaLab"
 )
 
@@ -111,6 +111,30 @@ func main() {
 	tuiApp.RegisterPanel(detailsCtx)
 	tuiApp.RegisterPanel(output)
 	tuiApp.RegisterPanel(statusbar)
+
+	// Create and wire controllers
+	gui := tuiApp.GetGui()
+
+	migrationsController := app.NewMigrationsController(
+		tuiApp, gui, migrationsCtx, output,
+		tuiApp.OpenModal, tuiApp.CloseModal,
+		tuiApp.RunStreamingCommand,
+	)
+	generateController := app.NewGenerateController(
+		tuiApp, gui, output,
+		tuiApp.OpenModal,
+		tuiApp.RunStreamingCommand,
+	)
+	studioController := app.NewStudioController(
+		tuiApp, gui, output,
+		tuiApp.OpenModal,
+	)
+	clipboardController := app.NewClipboardController(
+		tuiApp, gui, migrationsCtx,
+		tuiApp.OpenModal, tuiApp.CloseModal,
+	)
+
+	tuiApp.SetControllers(migrationsController, generateController, studioController, clipboardController)
 
 	// Register keybindings
 	if err := tuiApp.RegisterKeybindings(); err != nil {

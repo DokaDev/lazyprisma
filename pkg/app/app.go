@@ -5,7 +5,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/dokadev/lazyprisma/pkg/commands"
 	"github.com/dokadev/lazyprisma/pkg/common"
 	"github.com/dokadev/lazyprisma/pkg/gui/context"
 	"github.com/dokadev/lazyprisma/pkg/i18n"
@@ -36,9 +35,11 @@ type App struct {
 	spinnerFrame       atomic.Uint32 // Current spinner frame index (0-3)
 	stopSpinnerCh      chan struct{} // Channel to stop spinner goroutine
 
-	// Studio process management
-	studioCmd     *commands.Command // Running studio command
-	studioRunning bool              // True if studio is running
+	// Controllers
+	migrationsController *MigrationsController
+	generateController   *GenerateController
+	studioController     *StudioController
+	clipboardController  *ClipboardController
 }
 
 type AppConfig struct {
@@ -78,13 +79,23 @@ func NewApp(config AppConfig) (*App, error) {
 	return app, nil
 }
 
+// SetControllers wires the extracted controllers into the App.
+func (a *App) SetControllers(mc *MigrationsController, gc *GenerateController, sc *StudioController, cc *ClipboardController) {
+	a.migrationsController = mc
+	a.generateController = gc
+	a.studioController = sc
+	a.clipboardController = cc
+}
+
 func (a *App) Run() error {
 	defer a.g.Close()
 	defer close(a.stopSpinnerCh) // Stop spinner goroutine
 	defer func() {
 		// Kill studio process if running
-		if a.studioCmd != nil {
-			a.studioCmd.Kill()
+		if a.studioController != nil {
+			if cmd := a.studioController.GetStudioCmd(); cmd != nil {
+				cmd.Kill()
+			}
 		}
 	}()
 
@@ -119,7 +130,10 @@ func (a *App) StatusBarState() context.StatusBarState {
 			return a.spinnerFrame.Load()
 		},
 		IsStudioRunning: func() bool {
-			return a.studioRunning
+			if a.studioController != nil {
+				return a.studioController.IsStudioRunning()
+			}
+			return false
 		},
 		GetCommandName: func() string {
 			if val := a.runningCommandName.Load(); val != nil {
@@ -173,9 +187,9 @@ func (a *App) GetCurrentPanel() Panel {
 	return nil
 }
 
-// tryStartCommand attempts to start a command execution
-// Returns true if command can start, false if another command is already running
-func (a *App) tryStartCommand(commandName string) bool {
+// TryStartCommand attempts to start a command execution.
+// Returns true if command can start, false if another command is already running.
+func (a *App) TryStartCommand(commandName string) bool {
 	// CompareAndSwap atomically: if false, set to true and return true
 	// if already true, return false
 	if a.commandRunning.CompareAndSwap(false, true) {
@@ -185,15 +199,15 @@ func (a *App) tryStartCommand(commandName string) bool {
 	return false
 }
 
-// finishCommand marks command execution as complete
-func (a *App) finishCommand() {
+// FinishCommand marks command execution as complete.
+func (a *App) FinishCommand() {
 	a.runningCommandName.Store("")
 	a.commandRunning.Store(false)
 	a.spinnerFrame.Store(0) // Reset spinner to first frame
 }
 
-// logCommandBlocked logs a message when command execution is blocked
-func (a *App) logCommandBlocked(commandName string) {
+// LogCommandBlocked logs a message when command execution is blocked.
+func (a *App) LogCommandBlocked(commandName string) {
 	a.g.Update(func(g *gocui.Gui) error {
 		if outputPanel, ok := a.panels[ViewOutputs].(*context.OutputContext); ok {
 			runningTask := ""
@@ -456,16 +470,16 @@ func (a *App) registerMouseWheelBindings() {
 // RefreshAll refreshes all panels asynchronously
 func (a *App) RefreshAll(onComplete ...func()) bool {
 	// Try to start command - if another command is running, block
-	if !a.tryStartCommand("Refresh All") {
-		a.logCommandBlocked("Refresh All")
+	if !a.TryStartCommand("Refresh All") {
+		a.LogCommandBlocked("Refresh All")
 		return false
 	}
 
 	// Run refresh in background to avoid blocking UI
 	go func() {
-		defer a.finishCommand() // Always mark command as complete
+		defer a.FinishCommand() // Always mark command as complete
 
-		a.refreshPanels()
+		a.RefreshPanels()
 
 		// Update UI on main thread (thread-safe)
 		a.g.Update(func(g *gocui.Gui) error {
@@ -485,8 +499,8 @@ func (a *App) RefreshAll(onComplete ...func()) bool {
 	return true
 }
 
-// refreshPanels refreshes all panels (blocking, internal)
-func (a *App) refreshPanels() {
+// RefreshPanels refreshes all panels (blocking, internal).
+func (a *App) RefreshPanels() {
 	// Refresh workspace panel
 	if workspaceCtx, ok := a.panels[ViewWorkspace].(*context.WorkspaceContext); ok {
 		workspaceCtx.Refresh()

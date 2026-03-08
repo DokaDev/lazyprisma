@@ -17,24 +17,12 @@ import (
 	"github.com/jesseduffield/lazycore/pkg/boxlayout"
 )
 
-// Frame and title styling constants (matching app.panel.go values)
-var (
-	wsDefaultFrameRunes = []rune{'─', '│', '╭', '╮', '╰', '╯'}
-
-	wsPrimaryFrameColor = gocui.ColorWhite
-	wsFocusedFrameColor = gocui.ColorGreen
-
-	wsPrimaryTitleColor = gocui.ColorWhite | gocui.AttrNone
-	wsFocusedTitleColor = gocui.ColorGreen | gocui.AttrBold
-)
-
 type WorkspaceContext struct {
 	*SimpleContext
 	*ScrollableTrait
 
-	g              *gocui.Gui
-	tr             *i18n.TranslationSet
-	focused        bool
+	g             *gocui.Gui
+	tr            *i18n.TranslationSet
 	nodeVersion    string
 	prismaVersion  string
 	prismaGlobal   bool
@@ -99,9 +87,9 @@ func (w *WorkspaceContext) Draw(dim boxlayout.Dimensions) error {
 	}
 
 	// Setup view (replicates BasePanel.SetupView)
-	w.setupView(v)
-	w.SetView(v)                 // BaseContext
+	w.SetView(v)                 // BaseContext (must be set before setupView for ApplyFocusStyle)
 	w.ScrollableTrait.SetView(v) // ScrollableTrait
+	w.setupView(v)
 
 	v.Wrap = true // Enable word wrap
 
@@ -155,33 +143,8 @@ func (w *WorkspaceContext) setupView(v *gocui.View) {
 	v.Clear()
 	v.Frame = true
 	v.Title = w.tr.PanelTitleWorkspace
-	v.FrameRunes = wsDefaultFrameRunes
-
-	if w.focused {
-		v.FrameColor = wsFocusedFrameColor
-		v.TitleColor = wsFocusedTitleColor
-	} else {
-		v.FrameColor = wsPrimaryFrameColor
-		v.TitleColor = wsPrimaryTitleColor
-	}
-}
-
-// OnFocus handles focus gain (implements Panel interface from app package)
-func (w *WorkspaceContext) OnFocus() {
-	w.focused = true
-	if v := w.GetView(); v != nil {
-		v.FrameColor = wsFocusedFrameColor
-		v.TitleColor = wsFocusedTitleColor
-	}
-}
-
-// OnBlur handles focus loss (implements Panel interface from app package)
-func (w *WorkspaceContext) OnBlur() {
-	w.focused = false
-	if v := w.GetView(); v != nil {
-		v.FrameColor = wsPrimaryFrameColor
-		v.TitleColor = wsPrimaryTitleColor
-	}
+	v.FrameRunes = style.DefaultFrameRunes
+	w.ApplyFocusStyle()
 }
 
 // Refresh reloads all workspace information

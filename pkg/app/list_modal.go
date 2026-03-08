@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 
+	"github.com/dokadev/lazyprisma/pkg/gui/style"
 	"github.com/dokadev/lazyprisma/pkg/i18n"
 	"github.com/jesseduffield/gocui"
 	"github.com/jesseduffield/lazycore/pkg/boxlayout"
@@ -129,7 +130,7 @@ func (m *ListModal) drawListView(x0, y0, x1, y1 int) error {
 
 	// Enable highlight for selection (like MigrationsPanel)
 	v.Highlight = true
-	v.SelBgColor = SelectionBgColor
+	v.SelBgColor = style.SelectionBgColor
 
 	// Render list items
 	for _, item := range m.items {
