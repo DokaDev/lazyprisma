@@ -1,6 +1,6 @@
 # Binary name
 BINARY_NAME=lazyprisma
-VERSION ?= 0.3.0
+VERSION ?= 0.3.1
 
 # Directories
 BUILD_DIR=build
