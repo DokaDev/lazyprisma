@@ -70,6 +70,15 @@ func (o *OutputContext) Draw(dim boxlayout.Dimensions) error {
 	o.ScrollableTrait.SetView(v) // ScrollableTrait
 	o.setupView(v)
 
+	// Frame colours based on focus (set after Clear to persist through render)
+	if o.IsFocused() {
+		v.FrameColor = style.FocusedFrameColor
+		v.TitleColor = style.FocusedTitleColor
+	} else {
+		v.FrameColor = style.PrimaryFrameColor
+		v.TitleColor = style.PrimaryTitleColor
+	}
+
 	v.Subtitle = o.subtitle
 	v.Wrap = true
 	fmt.Fprint(v, o.content)
@@ -99,7 +108,6 @@ func (o *OutputContext) setupView(v *gocui.View) {
 	v.Frame = true
 	v.Title = o.tr.PanelTitleOutput
 	v.FrameRunes = style.DefaultFrameRunes
-	o.ApplyFocusStyle()
 }
 
 // AppendOutput appends text to the output buffer and flags auto-scroll

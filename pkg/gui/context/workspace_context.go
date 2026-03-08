@@ -91,6 +91,15 @@ func (w *WorkspaceContext) Draw(dim boxlayout.Dimensions) error {
 	w.ScrollableTrait.SetView(v) // ScrollableTrait
 	w.setupView(v)
 
+	// Frame colours based on focus (set after Clear to persist through render)
+	if w.IsFocused() {
+		v.FrameColor = style.FocusedFrameColor
+		v.TitleColor = style.FocusedTitleColor
+	} else {
+		v.FrameColor = style.PrimaryFrameColor
+		v.TitleColor = style.PrimaryTitleColor
+	}
+
 	v.Wrap = true // Enable word wrap
 
 	// Build content from fields
@@ -144,7 +153,6 @@ func (w *WorkspaceContext) setupView(v *gocui.View) {
 	v.Frame = true
 	v.Title = w.tr.PanelTitleWorkspace
 	v.FrameRunes = style.DefaultFrameRunes
-	w.ApplyFocusStyle()
 }
 
 // Refresh reloads all workspace information
