@@ -104,6 +104,12 @@ func (b *BaseModal) SetupView(name string, x0, y0, x1, y1 int, zIndex byte, titl
 	return v, isNew, nil
 }
 
+// AcceptsTextInput returns false by default (most modals don't accept text input).
+func (b *BaseModal) AcceptsTextInput() bool { return false }
+
+// ClosesOnEnter returns false by default (most modals handle Enter via HandleKey).
+func (b *BaseModal) ClosesOnEnter() bool { return false }
+
 // OnClose deletes the modal's primary view
 func (b *BaseModal) OnClose() {
 	b.g.DeleteView(b.id)

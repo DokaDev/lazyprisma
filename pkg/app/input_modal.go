@@ -57,6 +57,9 @@ func (m *InputModal) OnValidationFail(callback func(string)) *InputModal {
 	return m
 }
 
+// AcceptsTextInput returns true because InputModal uses keyboard for text entry.
+func (m *InputModal) AcceptsTextInput() bool { return true }
+
 // Draw renders the input modal
 func (m *InputModal) Draw(dim boxlayout.Dimensions) error {
 	// Calculate width

@@ -18,20 +18,6 @@ import (
 	"github.com/jesseduffield/lazycore/pkg/boxlayout"
 )
 
-// Frame and title styling constants (matching app.panel.go values)
-var (
-	detailsDefaultFrameRunes = []rune{'─', '│', '╭', '╮', '╰', '╯'}
-
-	detailsPrimaryFrameColor = gocui.ColorWhite
-	detailsFocusedFrameColor = gocui.ColorGreen
-
-	detailsPrimaryTitleColor = gocui.ColorWhite | gocui.AttrNone
-	detailsFocusedTitleColor = gocui.ColorGreen | gocui.AttrBold
-
-	detailsFocusedActiveTabColor = gocui.ColorGreen | gocui.AttrBold
-	detailsPrimaryActiveTabColor = gocui.ColorGreen | gocui.AttrNone
-)
-
 // DetailsContext is the context-based replacement for DetailsPanel.
 // It displays migration details and action-needed information with tabbed navigation.
 type DetailsContext struct {
@@ -49,9 +35,6 @@ type DetailsContext struct {
 	// Action-needed data
 	actionNeededMigrations []prisma.Migration
 	validationResult       *prisma.ValidateResult
-
-	// UI state
-	focused bool
 
 	// Callback-based decoupling (replaces direct App reference)
 	hasActiveModal func() bool
@@ -119,7 +102,7 @@ func (d *DetailsContext) Draw(dim boxlayout.Dimensions) error {
 
 	v.Clear()
 	v.Frame = true
-	v.FrameRunes = detailsDefaultFrameRunes
+	v.FrameRunes = style.DefaultFrameRunes
 	v.Wrap = true // Enable word wrap for long lines
 
 	// Set tabs from TabbedTrait
@@ -128,21 +111,21 @@ func (d *DetailsContext) Draw(dim boxlayout.Dimensions) error {
 
 	// Set frame and tab colors based on focus
 	tabs := d.TabbedTrait.GetTabs()
-	if d.focused {
-		v.FrameColor = detailsFocusedFrameColor
-		v.TitleColor = detailsFocusedTitleColor
+	if d.IsFocused() {
+		v.FrameColor = style.FocusedFrameColor
+		v.TitleColor = style.FocusedTitleColor
 		if len(tabs) == 1 {
-			v.SelFgColor = detailsFocusedTitleColor // Single tab: treat like title
+			v.SelFgColor = style.FocusedTitleColor // Single tab: treat like title
 		} else {
-			v.SelFgColor = detailsFocusedActiveTabColor // Multiple tabs: use active tab color
+			v.SelFgColor = style.FocusedActiveTabColor // Multiple tabs: use active tab color
 		}
 	} else {
-		v.FrameColor = detailsPrimaryFrameColor
-		v.TitleColor = detailsPrimaryTitleColor
+		v.FrameColor = style.PrimaryFrameColor
+		v.TitleColor = style.PrimaryTitleColor
 		if len(tabs) == 1 {
-			v.SelFgColor = detailsPrimaryTitleColor // Single tab: treat like title
+			v.SelFgColor = style.PrimaryTitleColor // Single tab: treat like title
 		} else {
-			v.SelFgColor = detailsPrimaryActiveTabColor // Multiple tabs: use active tab color
+			v.SelFgColor = style.PrimaryActiveTabColor // Multiple tabs: use active tab color
 		}
 	}
 
@@ -158,24 +141,6 @@ func (d *DetailsContext) Draw(dim boxlayout.Dimensions) error {
 	d.ScrollableTrait.AdjustScroll()
 
 	return nil
-}
-
-// OnFocus handles focus gain (implements Panel interface from app package).
-func (d *DetailsContext) OnFocus() {
-	d.focused = true
-	if v := d.GetView(); v != nil {
-		v.FrameColor = detailsFocusedFrameColor
-		v.TitleColor = detailsFocusedTitleColor
-	}
-}
-
-// OnBlur handles focus loss (implements Panel interface from app package).
-func (d *DetailsContext) OnBlur() {
-	d.focused = false
-	if v := d.GetView(); v != nil {
-		v.FrameColor = detailsPrimaryFrameColor
-		v.TitleColor = detailsPrimaryTitleColor
-	}
 }
 
 // SetContent sets the content text directly.

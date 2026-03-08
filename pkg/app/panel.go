@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/dokadev/lazyprisma/pkg/gui/style"
 	"github.com/jesseduffield/gocui"
 	"github.com/jesseduffield/lazycore/pkg/boxlayout"
 )
@@ -20,29 +21,11 @@ type BasePanel struct {
 	frameRunes []rune
 }
 
-// Frame and title styling
-var (
-	defaultFrameRunes = []rune{'─', '│', '╭', '╮', '╰', '╯'}
-
-	PrimaryFrameColor = gocui.ColorWhite
-	FocusedFrameColor = gocui.ColorGreen
-
-	PrimaryTitleColor = gocui.ColorWhite | gocui.AttrNone
-	FocusedTitleColor = gocui.ColorGreen | gocui.AttrBold
-
-	// Tab styling
-	FocusedActiveTabColor = gocui.ColorGreen | gocui.AttrBold // Active tab when panel is focused
-	PrimaryActiveTabColor = gocui.ColorGreen | gocui.AttrNone // Active tab when panel is not focused
-
-	// List selection color
-	SelectionBgColor = gocui.ColorBlue
-)
-
 func NewBasePanel(id string, g *gocui.Gui) BasePanel {
 	return BasePanel{
 		id:         id,
 		g:          g,
-		frameRunes: defaultFrameRunes,
+		frameRunes: style.DefaultFrameRunes,
 	}
 }
 
@@ -53,16 +36,16 @@ func (bp *BasePanel) ID() string {
 func (bp *BasePanel) OnFocus() {
 	bp.focused = true
 	if bp.v != nil {
-		bp.v.FrameColor = FocusedFrameColor
-		bp.v.TitleColor = FocusedTitleColor
+		bp.v.FrameColor = style.FocusedFrameColor
+		bp.v.TitleColor = style.FocusedTitleColor
 	}
 }
 
 func (bp *BasePanel) OnBlur() {
 	bp.focused = false
 	if bp.v != nil {
-		bp.v.FrameColor = PrimaryFrameColor
-		bp.v.TitleColor = PrimaryTitleColor
+		bp.v.FrameColor = style.PrimaryFrameColor
+		bp.v.TitleColor = style.PrimaryTitleColor
 	}
 }
 
@@ -75,11 +58,11 @@ func (bp *BasePanel) SetupView(v *gocui.View, title string) {
 	v.FrameRunes = bp.frameRunes
 
 	if bp.focused {
-		v.FrameColor = FocusedFrameColor
-		v.TitleColor = FocusedTitleColor
+		v.FrameColor = style.FocusedFrameColor
+		v.TitleColor = style.FocusedTitleColor
 	} else {
-		v.FrameColor = PrimaryFrameColor
-		v.TitleColor = PrimaryTitleColor
+		v.FrameColor = style.PrimaryFrameColor
+		v.TitleColor = style.PrimaryTitleColor
 	}
 }
 
