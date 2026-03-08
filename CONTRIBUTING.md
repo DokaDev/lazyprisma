@@ -11,6 +11,26 @@ considered an easy-to-learn language, and lazyprisma's codebase is modest in
 size, so if you're looking for an open source project to gain dev experience,
 you've come to the right place.
 
+## All code changes happen through Pull Requests
+
+Pull requests are the best way to propose changes to the codebase. I actively
+welcome your pull requests.
+
+Please do not raise pull requests from your fork's `main` branch: make a
+feature branch instead. Maintainers will sometimes push changes to your branch
+when reviewing a PR, and we often can't do this if you use your main branch.
+
+## Commit history
+
+We value a clean and useful commit history, so please take some time to
+organise your commits so that they make sense.
+
+In particular:
+
+- Refactorings and behaviour changes should be in separate commits. There are very few exceptions where this is not possible, but in practice they are very rare.
+- Strive for minimal commits; every change that is independent from other changes should be in a commit of its own (with a good commit message that explains why the change is made).
+- 
+
 ## Go
 
 This project is written in Go. Go is an opinionated language with strict idioms,
