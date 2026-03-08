@@ -29,7 +29,6 @@ In particular:
 
 - Refactorings and behaviour changes should be in separate commits. There are very few exceptions where this is not possible, but in practice they are very rare.
 - Strive for minimal commits; every change that is independent from other changes should be in a commit of its own (with a good commit message that explains why the change is made).
-- 
 
 ## Go
 
