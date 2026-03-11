@@ -315,22 +315,42 @@ func resolveEnvVar(projectDir, envVar string) string {
 		return val
 	}
 
-	// 2. Check .env in project root
-	if val := readEnvFile(filepath.Join(projectDir, ".env"), envVar); val != "" {
-		return val
-	}
-
-	// 3. Check .env in schema directory
-	if val := readEnvFile(filepath.Join(projectDir, SchemaDirName, ".env"), envVar); val != "" {
-		return val
-	}
-
-	// 4. Check .env in prisma directory
-	if val := readEnvFile(filepath.Join(projectDir, "prisma", ".env"), envVar); val != "" {
-		return val
+	// Search workspace-local env files first, then walk parent directories
+	// so monorepo-style root .env files are still discovered.
+	for _, path := range envSearchPaths(projectDir) {
+		if val := readEnvFile(path, envVar); val != "" {
+			return val
+		}
 	}
 
 	return ""
+}
+
+func envSearchPaths(projectDir string) []string {
+	paths := make([]string, 0, 5)
+	seen := make(map[string]struct{})
+	addPath := func(path string) {
+		if _, ok := seen[path]; ok {
+			return
+		}
+		seen[path] = struct{}{}
+		paths = append(paths, path)
+	}
+
+	addPath(filepath.Join(projectDir, ".env"))
+	addPath(filepath.Join(projectDir, SchemaDirName, ".env"))
+
+	currentDir := projectDir
+	for i := 0; i < 3; i++ {
+		parentDir := filepath.Dir(currentDir)
+		if parentDir == currentDir {
+			break
+		}
+		addPath(filepath.Join(parentDir, ".env"))
+		currentDir = parentDir
+	}
+
+	return paths
 }
 
 // readEnvFile reads a specific environment variable from a .env file
