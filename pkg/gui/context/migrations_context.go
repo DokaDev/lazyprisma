@@ -42,6 +42,7 @@ type MigrationsContext struct {
 }
 
 var _ types.Context = &MigrationsContext{}
+var _ types.IListContext = &MigrationsContext{}
 
 type MigrationsContextOpts struct {
 	Gui      *gocui.Gui
@@ -274,6 +275,16 @@ func (m *MigrationsContext) SelectPrev() {
 
 		m.notifySelectionChanged()
 	}
+}
+
+// GetSelectedIdx returns the index of the currently selected item.
+func (m *MigrationsContext) GetSelectedIdx() int {
+	return m.selected
+}
+
+// GetItemCount returns the number of items in the current tab.
+func (m *MigrationsContext) GetItemCount() int {
+	return len(m.items)
 }
 
 // ---------------------------------------------------------------------------
